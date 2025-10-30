@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Avoid Boxes – Funny Edition</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <h1 class="logo" data-i18n="app.title"></h1>
+      <nav class="top-actions">
+        <!-- NEW: toggle panel trái -->
+
+        <button id="btnReset" class="btn-reset" title="Reset missions/coins/xp">
+          Reset Mission
+        </button>
+
+        <select id="langSelect" class="select" aria-label="Language">
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+        </select>
+
+        <select id="stageSelect" class="select" aria-label="Stage">
+          <option value="city">City</option>
+          <option value="noodle">Noodle</option>
+          <option value="gym">Gym</option>
+        </select>
+
+        <button id="btnSettings" class="btn" title="Settings" data-i18n-title="header.settings_title">⚙️</button>
+        <button id="btnMute" class="btn" aria-pressed="false" title="Sound" data-i18n-title="header.sound_title">🔊</button>
+      </nav>
+    </header>
+
+  <div id="scaleRoot" class="scale-root">
+    <main class="main-grid">
+      <!-- LEFT: HOW-TO (render bằng i18n) -->
+      <aside class="left-rail">
+        <h2 class="rail-title">
+          <span class="ico book" aria-hidden="true"></span>
+          <span id="howtoTitle">How to Play</span>
+        </h2>
+        <div id="howtoBody" class="howto"></div>
+      </aside>
+
+      <!-- CENTER: GAME -->
+      <section class="center-rail">
+        <div class="game-stage">
+          <canvas id="gameCanvas" width="540" height="720" tabindex="0"></canvas>
+
+          <!-- HUD -->
+        <div class="hud top-left">
+          <div id="uiTime"  class="pill">—</div>
+          <div id="uiScore" class="pill">—</div>
+          <div id="uiBest"  class="pill ghost">—</div>
+          
+        </div>
+
+          <div id="gameoverStats"></div>
+          <button id="btnPause" class="btn circle top-right" aria-label="Pause" data-i18n-aria="buttons.pause_aria">⏸</button>
+
+          <!-- Combo bar -->
+          <div id="comboWrap" class="combo hidden">
+            <div class="combo-bar"><span id="comboFill"></span></div>
+            <div class="combo-label">COMBO <span id="comboCount">0</span> • <span id="comboMult">1.00x</span></div>
+          </div>
+
+          <!-- Toast -->
+          <div id="toast" class="toast hidden" data-i18n="toast.incoming"></div>
+
+          <!-- Overlays -->
+          <div id="overlayStart" class="overlay show">
+            <h2 data-i18n="start.title"></h2>
+            <p  data-i18n="start.prompt"></p>
+            <button id="btnPlay" class="btn big" data-i18n="start.play"></button>
+          </div>
+
+          <div id="overlayPause" class="overlay hidden">
+            <h2 data-i18n="pause.title"></h2>
+            <div class="row">
+              <button id="btnResume"   class="btn" data-i18n="pause.resume"></button>
+              <button id="btnRestart1" class="btn" data-i18n="pause.restart"></button>
+            </div>
+          </div>
+
+          <div id="overlayCountdown" class="overlay hidden">
+            <h2 id="countNum">3</h2>
+          </div>
+
+          <div id="overlayGameOver" class="overlay hidden">
+            <h2 data-i18n="gameover.title"></h2>
+            <p id="finalResult">—</p>
+            <button id="btnRestart2" class="btn big" data-i18n="gameover.restart"></button>
+          </div>
+
+          <!-- Touch zones -->
+          <div class="touch left"  id="touchLeft"  aria-hidden="true"></div>
+          <div class="touch right" id="touchRight" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: PANELS -->
+      <aside class="right-rail">
+        <section class="panel" id="panelMissions">
+          <h2 class="panel-title"><span class="ico flag"></span><span data-i18n="panel.missions_title">Today's Missions</span></h2>
+          <ul id="missionsList"></ul>
+        </section>
+
+        <section class="panel" id="panelShop">
+          <h2 class="panel-title"><span class="ico cart"></span><span data-i18n="panel.shop_title">Shop</span></h2>
+          <!-- nội dung shop hiện có -->
+        </section>
+
+      </aside>
+    </main>
+  </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-card">
+      <h3 id="settingsTitle" data-i18n="settings.title">Settings</h3>
+      <label class="slider">
+        <span data-i18n="settings.sfx"></span>
+        <input id="sfxRange" type="range" min="0" max="100" step="1">
+        <span id="sfxVal">90%</span>
+      </label>
+      <label class="slider">
+        <span data-i18n="settings.music"></span>
+        <input id="musicRange" type="range" min="0" max="100" step="1">
+        <span id="musicVal">30%</span>
+      </label>
+      <div class="row">
+        <button id="btnCloseSettings" class="btn" data-i18n="settings.close"></button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
