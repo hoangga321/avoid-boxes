@@ -3,6 +3,7 @@
    ======================= */
 :root{
   /* màu chính */
+  body{ background: var(--bg); color: var(--ink); }
   --bg:#fbf3e8;
   --surface:#f7ede2;
   --paper:#ffffff;
@@ -184,7 +185,7 @@ html{ overflow:hidden; }                 /* ẩn scrollbar ngoài – panel con 
    RIGHT PANELS
    ======================= */
 .panel{
-  background:#fff; border:2px solid #000; border-radius:14px;
+  background:var(--surface); border:2px solid #000; border-radius:14px;
   box-shadow:var(--shadow); padding:12px;
   transition:box-shadow .15s ease, transform .12s ease;
 }
