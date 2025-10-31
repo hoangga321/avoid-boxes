@@ -6,21 +6,56 @@
   <title>Avoid Boxes – Funny Edition</title>
   <link rel="stylesheet" href="css/style.css" />
   <!-- Game UI fonts (VN + KR ready) -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="app">
     <header class="topbar">
-      <h1 class="logo" data-i18n="app.title"></h1>
+      <!-- NEW: bọc logo + mascot (không phá vị trí cũ) -->
+      <div class="logo-hero">
+        <h1 class="logo" id="gameLogo" data-i18n="app.title"></h1>
+
+        <!-- Mascot Yakuza ngồi chỉ vào logo (SVG placeholder). 
+             Nếu bạn có PNG/SVG riêng, thay <svg> bằng <img class="yakuza-img" src="assets/skins/yakuza_pose_point.png"> -->
+        <figure class="logo-mascot" aria-hidden="true">
+          <svg viewBox="0 0 220 180" width="220" height="180" class="yakuza-svg" role="img">
+            <!-- ghế -->
+            <rect x="60" y="120" width="90" height="10" rx="5" fill="#3a3a3a"/>
+            <!-- chân gập -->
+            <path d="M95 120 Q90 135 100 145 L110 145 Q105 130 115 120 Z" fill="#1e293b"/>
+            <path d="M125 120 Q120 135 130 145 L140 145 Q135 130 145 120 Z" fill="#1e293b"/>
+            <!-- thân áo vest đen -->
+            <path d="M85 70 L140 70 L150 115 L75 115 Z" fill="#111"/>
+            <!-- cà vạt đỏ -->
+            <path d="M112 70 L116 70 L118 95 L110 95 Z" fill="#b91c1c"/>
+            <!-- đầu + tóc -->
+            <circle cx="112" cy="52" r="18" fill="#f8d2b1"/>
+            <path d="M94 46 Q112 28 130 46 L124 40 Q112 34 100 40 Z" fill="#111"/>
+            <!-- kính đen -->
+            <rect x="100" y="48" width="12" height="6" rx="2" fill="#0f172a"/>
+            <rect x="114" y="48" width="12" height="6" rx="2" fill="#0f172a"/>
+            <rect x="112" y="50" width="4" height="2" fill="#0f172a"/>
+            <!-- gậy bóng chày -->
+            <rect x="60" y="92" width="58" height="6" rx="3" fill="#8b5e34" transform="rotate(-10 60 92)"/>
+            <!-- tay trái đặt trên gậy -->
+            <circle cx="68" cy="94" r="6" fill="#f8d2b1"/>
+            <!-- tay phải (có khớp xoay để “chỉ”) -->
+            <g class="right-arm" transform="translate(145,88)">
+              <rect x="-6" y="-2" width="26" height="6" rx="3" fill="#111"/>
+              <g class="forearm" transform="translate(20,0)">
+                <rect x="0" y="-2" width="26" height="6" rx="3" fill="#111"/>
+                <circle cx="28" cy="1" r="4" fill="#f8d2b1"/>
+              </g>
+            </g>
+          </svg>
+        </figure>
+      </div>
+
       <nav class="top-actions">
         <!-- NEW: toggle panel trái -->
-
-        <button id="btnReset" class="btn-reset" title="Reset missions/coins/xp">
-          Reset Mission
-        </button>
+        <button id="btnReset" class="btn-reset" title="Reset missions/coins/xp">Reset Mission</button>
 
         <select id="langSelect" class="select" aria-label="Language">
           <option value="en">English</option>
@@ -38,88 +73,86 @@
       </nav>
     </header>
 
-  <div id="scaleRoot" class="scale-root">
-    <main class="main-grid">
-      <!-- LEFT: HOW-TO (render bằng i18n) -->
-      <aside class="left-rail">
-        <h2 class="rail-title">
-          <span class="ico book" aria-hidden="true"></span>
-          <span id="howtoTitle">How to Play</span>
-        </h2>
-        <div id="howtoBody" class="howto"></div>
-      </aside>
+    <div id="scaleRoot" class="scale-root">
+      <main class="main-grid">
+        <!-- LEFT: HOW-TO -->
+        <aside class="left-rail">
+          <h2 class="rail-title">
+            <span class="ico book" aria-hidden="true"></span>
+            <span id="howtoTitle">How to Play</span>
+          </h2>
+          <div id="howtoBody" class="howto"></div>
+        </aside>
 
-      <!-- CENTER: GAME -->
-      <section class="center-rail">
-        <div class="game-stage">
-          <canvas id="gameCanvas" width="540" height="720" tabindex="0"></canvas>
+        <!-- CENTER: GAME -->
+        <section class="center-rail">
+          <div class="game-stage">
+            <canvas id="gameCanvas" width="540" height="720" tabindex="0"></canvas>
 
-          <!-- HUD -->
-        <div class="hud top-left">
-          <div id="uiTime"  class="pill">—</div>
-          <div id="uiScore" class="pill">—</div>
-          <div id="uiBest"  class="pill ghost">—</div>
-          
-        </div>
-
-          <div id="gameoverStats"></div>
-          <button id="btnPause" class="btn circle top-right" aria-label="Pause" data-i18n-aria="buttons.pause_aria">⏸</button>
-
-          <!-- Combo bar -->
-          <div id="comboWrap" class="combo hidden">
-            <div class="combo-bar"><span id="comboFill"></span></div>
-            <div class="combo-label">COMBO <span id="comboCount">0</span> • <span id="comboMult">1.00x</span></div>
-          </div>
-
-          <!-- Toast -->
-          <div id="toast" class="toast hidden" data-i18n="toast.incoming"></div>
-
-          <!-- Overlays -->
-          <div id="overlayStart" class="overlay show">
-            <h2 data-i18n="start.title"></h2>
-            <p  data-i18n="start.prompt"></p>
-            <button id="btnPlay" class="btn big" data-i18n="start.play"></button>
-          </div>
-
-          <div id="overlayPause" class="overlay hidden">
-            <h2 data-i18n="pause.title"></h2>
-            <div class="row">
-              <button id="btnResume"   class="btn" data-i18n="pause.resume"></button>
-              <button id="btnRestart1" class="btn" data-i18n="pause.restart"></button>
+            <!-- HUD -->
+            <div class="hud top-left">
+              <div id="uiTime"  class="pill">—</div>
+              <div id="uiScore" class="pill">—</div>
+              <div id="uiBest"  class="pill ghost">—</div>
             </div>
+
+            <div id="gameoverStats"></div>
+            <button id="btnPause" class="btn circle top-right" aria-label="Pause" data-i18n-aria="buttons.pause_aria">⏸</button>
+
+            <!-- Combo bar -->
+            <div id="comboWrap" class="combo hidden">
+              <div class="combo-bar"><span id="comboFill"></span></div>
+              <div class="combo-label">COMBO <span id="comboCount">0</span> • <span id="comboMult">1.00x</span></div>
+            </div>
+
+            <!-- Toast -->
+            <div id="toast" class="toast hidden" data-i18n="toast.incoming"></div>
+
+            <!-- Overlays -->
+            <div id="overlayStart" class="overlay show">
+              <h2 data-i18n="start.title"></h2>
+              <p  data-i18n="start.prompt"></p>
+              <button id="btnPlay" class="btn big" data-i18n="start.play"></button>
+            </div>
+
+            <div id="overlayPause" class="overlay hidden">
+              <h2 data-i18n="pause.title"></h2>
+              <div class="row">
+                <button id="btnResume"   class="btn" data-i18n="pause.resume"></button>
+                <button id="btnRestart1" class="btn" data-i18n="pause.restart"></button>
+              </div>
+            </div>
+
+            <div id="overlayCountdown" class="overlay hidden">
+              <h2 id="countNum">3</h2>
+            </div>
+
+            <div id="overlayGameOver" class="overlay hidden">
+              <h2 data-i18n="gameover.title"></h2>
+              <p id="finalResult">—</p>
+              <button id="btnRestart2" class="btn big" data-i18n="gameover.restart"></button>
+            </div>
+
+            <!-- Touch zones -->
+            <div class="touch left"  id="touchLeft"  aria-hidden="true"></div>
+            <div class="touch right" id="touchRight" aria-hidden="true"></div>
           </div>
-
-          <div id="overlayCountdown" class="overlay hidden">
-            <h2 id="countNum">3</h2>
-          </div>
-
-          <div id="overlayGameOver" class="overlay hidden">
-            <h2 data-i18n="gameover.title"></h2>
-            <p id="finalResult">—</p>
-            <button id="btnRestart2" class="btn big" data-i18n="gameover.restart"></button>
-          </div>
-
-          <!-- Touch zones -->
-          <div class="touch left"  id="touchLeft"  aria-hidden="true"></div>
-          <div class="touch right" id="touchRight" aria-hidden="true"></div>
-        </div>
-      </section>
-
-      <!-- RIGHT: PANELS -->
-      <aside class="right-rail">
-        <section class="panel" id="panelMissions">
-          <h2 class="panel-title"><span class="ico flag"></span><span data-i18n="panel.missions_title">Today's Missions</span></h2>
-          <ul id="missionsList"></ul>
         </section>
 
-        <section class="panel" id="panelShop">
-          <h2 class="panel-title"><span class="ico cart"></span><span data-i18n="panel.shop_title">Shop</span></h2>
-          <!-- nội dung shop hiện có -->
-        </section>
+        <!-- RIGHT: PANELS -->
+        <aside class="right-rail">
+          <section class="panel" id="panelMissions">
+            <h2 class="panel-title"><span class="ico flag"></span><span data-i18n="panel.missions_title">Today's Missions</span></h2>
+            <ul id="missionsList"></ul>
+          </section>
 
-      </aside>
-    </main>
-  </div>
+          <section class="panel" id="panelShop">
+            <h2 class="panel-title"><span class="ico cart"></span><span data-i18n="panel.shop_title">Shop</span></h2>
+            <!-- nội dung shop hiện có -->
+          </section>
+        </aside>
+      </main>
+    </div>
   </div>
 
   <!-- Settings modal -->
