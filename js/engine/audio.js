@@ -20,7 +20,7 @@ export class AudioManager {
     this.sfx.gain.value    = clamp01(this.sfxVol);
     this.music.gain.value  = clamp01(this.musicVol);
 
-    // auto-unlock on first gesture (giữ nguyên hành vi cũ + có hàm unlock() thủ công)
+    // auto-unlock
     const _autoUnlock = () => {
       if (this.ctx.state !== "running") this.ctx.resume();
       window.removeEventListener("pointerdown", _autoUnlock);
@@ -32,9 +32,8 @@ export class AudioManager {
     this._musicNodes = null;
   }
 
-  // ======= FIX: hàm cần bởi main.js =======
+  // cần cho main.js
   unlock() {
-    // được gọi sớm ngay sau load – chỉ cần resume context
     if (this.ctx && this.ctx.state !== "running") {
       return this.ctx.resume();
     }
@@ -65,6 +64,7 @@ export class AudioManager {
   sfxHit()      { this._noise(0.10, 400); this._beep(180, 0.08, 0.01); }
 
   // ===== NEW: SFX cho Boss =====
+  sfxWarn()           { this._whoosh(0.10, 300, 1000); } // dùng cho banner WARNING
   sfxBossIntro(type="ufo") {
     this._whoosh(0.18, 600, 1200);
     setTimeout(()=> this._beep(220, 0.12, 0.03), 80);
