@@ -1,165 +1,586 @@
-// audio.js
-// Simple WebAudio manager: SFX + Music with volume, mute, and unlock on user gesture
-export class AudioManager {
-  constructor() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AC();
+/* =======================
+   GLOBAL & THEME (MERGED)
+   ======================= */
+:root{
+  /* màu chính */
+  body{ background: var(--bg); color: var(--ink); }
+  --bg:#fbf3e8;
+  --surface:#f7ede2;
+  --paper:#ffffff;
 
-    this.master = this.ctx.createGain();
-    this.sfx    = this.ctx.createGain();
-    this.music  = this.ctx.createGain();
-    this.sfx.connect(this.master);
-    this.music.connect(this.master);
-    this.master.connect(this.ctx.destination);
+  /* text vars (giữ cả --text & --ink cho tương thích) */
+  --text:#1f2937;
+  --ink:#101317;
 
-    // prefs
-    this.muted    = (localStorage.getItem("audio_muted") === "1") || false;
-    this.sfxVol   = Number(localStorage.getItem("audio_sfx")   ?? "0.9");
-    this.musicVol = Number(localStorage.getItem("audio_music") ?? "0.22");
-    this.master.gain.value = this.muted ? 0 : 1;
-    this.sfx.gain.value    = clamp01(this.sfxVol);
-    this.music.gain.value  = clamp01(this.musicVol);
+  --muted:#6b7280;
+  --brand:#0ea5b7;
+  --accent:#ffd166;
 
-    // auto-unlock
-    const _autoUnlock = () => {
-      if (this.ctx.state !== "running") this.ctx.resume();
-      window.removeEventListener("pointerdown", _autoUnlock);
-      window.removeEventListener("keydown", _autoUnlock);
-    };
-    window.addEventListener("pointerdown", _autoUnlock);
-    window.addEventListener("keydown", _autoUnlock);
+  /* hiệu ứng & kích thước */
+  --radius:14px;
+  --gap:16px;
+  --header-h:64px;
+  --shadow:0 10px 26px rgba(0,0,0,.14);
 
-    this._musicNodes = null;
-  }
-
-  // cần cho main.js
-  unlock() {
-    if (this.ctx && this.ctx.state !== "running") {
-      return this.ctx.resume();
-    }
-  }
-
-  setMuted(on) {
-    this.muted = !!on;
-    localStorage.setItem("audio_muted", on ? "1" : "0");
-    this.master.gain.value = on ? 0 : 1;
-  }
-  setSfxVolume(v) {
-    this.sfxVol = clamp01(v);
-    localStorage.setItem("audio_sfx", String(this.sfxVol));
-    this.sfx.gain.value = this.sfxVol;
-  }
-  setMusicVolume(v) {
-    this.musicVol = clamp01(v);
-    localStorage.setItem("audio_music", String(this.musicVol));
-    this.music.gain.value = this.musicVol;
-  }
-
-  // ===== SFX cơ bản (API cũ) =====
-  sfxClick()    { this._beep(880, 0.04, 0.002); }
-  sfxStart()    { this._beep(540, 0.08); this._beep(720, 0.08, 0.02); }
-  sfxPause()    { this._beep(320, 0.06); }
-  sfxBeep()     { this._beep(760, 0.05); }
-  sfxNearMiss() { this._noise(0.06, 1800); }
-  sfxHit()      { this._noise(0.10, 400); this._beep(180, 0.08, 0.01); }
-
-  // ===== NEW: SFX cho Boss =====
-  sfxWarn()           { this._whoosh(0.10, 300, 1000); } // dùng cho banner WARNING
-  sfxBossIntro(type="ufo") {
-    this._whoosh(0.18, 600, 1200);
-    setTimeout(()=> this._beep(220, 0.12, 0.03), 80);
-  }
-  sfxBossAttack(kind="laser") {
-    if (kind === "laser")    { this._beep(1200, 0.07, 0.005); this._whoosh(0.08, 900, 1400); }
-    else if (kind==="thunder"){ this._noise(0.12, 2000); this._beep(400, 0.05, 0.015); }
-    else if (kind==="fire")  { this._whoosh(0.10, 300, 700); this._beep(560, 0.04, 0.01); }
-  }
-  sfxBossClear() { this._beep(660, 0.08); this._beep(880, 0.10, 0.02); }
-
-  // ===== Music =====
-  musicStart() {
-    if (this._musicNodes) return;
-    const t = this.ctx.currentTime;
-    const o1 = this.ctx.createOscillator();
-    const o2 = this.ctx.createOscillator();
-    const g  = this.ctx.createGain();
-    const lfo= this.ctx.createOscillator();
-
-    o1.type = "sawtooth"; o2.type = "triangle";
-    o1.frequency.value = 220; o2.frequency.value = 330;
-    g.gain.value = clamp01(this.musicVol);
-
-    lfo.type = "sine"; lfo.frequency.value = 0.25;
-    const lfoGain = this.ctx.createGain(); lfoGain.gain.value = 8;
-    lfo.connect(lfoGain); lfoGain.connect(o2.frequency);
-
-    o1.connect(g); o2.connect(g); g.connect(this.music);
-    o1.start(t); o2.start(t); lfo.start(t);
-    this._musicNodes = { o1, o2, g, lfo };
-  }
-
-  musicStop() {
-    if (!this._musicNodes) return;
-    const { o1, o2, g, lfo } = this._musicNodes;
-    const t = this.ctx.currentTime;
-    g.gain.setTargetAtTime(0.0001, t, 0.1);
-    setTimeout(() => {
-      try{ o1.stop(); o2.stop(); lfo.stop(); }catch{}
-      this._musicNodes = null;
-    }, 200);
-  }
-
-  musicDuck(on=true) {
-    if (!this._musicNodes) return;
-    const t = this.ctx.currentTime;
-    this._musicNodes.g.gain.setTargetAtTime(on ? 0.05 : clamp01(this.musicVol), t, 0.08);
-  }
-
-  // ===== primitives =====
-  _beep(freq=600, dur=0.05, glide=0) {
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = "square"; o.frequency.value = Math.max(60, freq);
-    g.gain.value = 0.0001;
-
-    o.connect(g); g.connect(this.sfx);
-    o.start(t);
-    g.gain.setTargetAtTime(0.9, t, 0.005);
-    if (glide>0) o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*0.6), t+glide);
-    g.gain.setTargetAtTime(0.0001, t+dur, 0.02);
-    setTimeout(()=>{ try{ o.stop(); }catch{} }, (dur+0.05)*1000);
-  }
-
-  _noise(dur=0.06, lpFreq=1200) {
-    const t = this.ctx.currentTime;
-    const length = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
-    const buf = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i=0;i<data.length;i++){ data[i] = (Math.random()*2-1)*0.9; }
-
-    const src = this.ctx.createBufferSource(); src.buffer = buf;
-    const filter = this.ctx.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = Math.max(80, lpFreq);
-    const g = this.ctx.createGain(); g.gain.value = 0.9;
-
-    src.connect(filter); filter.connect(g); g.connect(this.sfx);
-    src.start(t);
-    g.gain.setTargetAtTime(0.0001, t+dur*0.7, 0.05);
-  }
-
-  _whoosh(dur=0.12, f0=400, f1=1400) {
-    const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = "sawtooth"; o.frequency.setValueAtTime(Math.max(40,f0), t);
-    o.frequency.exponentialRampToValueAtTime(Math.max(60, f1), t+dur);
-    g.gain.value = 0.0001;
-    o.connect(g); g.connect(this.sfx);
-    o.start(t);
-    g.gain.setTargetAtTime(1.0, t, 0.008);
-    g.gain.setTargetAtTime(0.0001, t+dur, 0.03);
-    setTimeout(()=>{ try{ o.stop(); }catch{} }, (dur+0.05)*1000);
-  }
+  /* tone phụ dùng cho logo header */
+  --brand1:#ffdda6;  /* header bg */
+  --brand2:#ffd166;  /* warm accent */
+  --brand3:#22d3ee;  /* neon cyan */
+  --brand4:#a78bfa;  /* neon purple */
 }
 
-function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+html{ overflow:hidden; }                 /* ẩn scrollbar ngoài – panel con vẫn cuộn */
+
+/* =======================
+   TOP BAR (MERGED)
+   ======================= */
+.topbar{
+  position:relative; overflow:hidden;
+  height:var(--header-h);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--gap);
+  border-bottom:2px solid #000;
+  background: linear-gradient(180deg, var(--brand1) 0%, #ffe5b9 100%);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.65);
+}
+.top-actions{ display:flex; align-items:center; gap:10px; }
+.select,.btn,.btn-reset{
+  height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 12px;
+  font-weight:600; cursor:pointer; transition:transform .08s ease, box-shadow .12s ease, background .12s ease, filter .12s ease;
+}
+.btn:hover,.btn-reset:hover,.select:hover{ transform:translateY(-1px); }
+.btn:active,.btn-reset:active,.select:active{ transform:translateY(0); }
+.btn-reset{ background:#fff1c9; }
+.btn-reset:hover{ background:#ffe9c9; }
+
+/* =======================
+   LOGO (MERGED)
+   ======================= */
+
+.logo::after{
+  content:""; position:absolute; inset:0; left:-35%;
+  background:linear-gradient(75deg,transparent 0%,rgba(255,255,255,.9) 48%,transparent 52%);
+  transform:skewX(-16deg); animation:logoShine 3.6s ease-in-out infinite;
+  mix-blend-mode:screen; pointer-events:none;
+}
+
+@keyframes logoShine{ 0%{left:-40%;opacity:0} 10%{opacity:.9} 55%{left:115%;opacity:0} 100%{left:115%;opacity:0} }
+@keyframes underlinePulse{ 0%,100%{transform:scaleX(.82);filter:brightness(1)} 50%{transform:scaleX(1);filter:brightness(1.25)} }
+
+/* =======================
+   MAIN GRID (3 columns)
+   ======================= */
+.scale-root{ width:max-content; transform-origin:top center; margin:0 auto; }
+.main-grid{
+  height:calc(100dvh - var(--header-h));
+  display:grid;
+  grid-template-columns:260px minmax(540px,1fr) 320px;   /* LEFT | CENTER | RIGHT */
+  grid-template-areas:"left center right";
+  gap:var(--gap);
+  /* full-bleed 2 bên như bản gốc */
+  padding:var(--gap) 0;
+  align-items:stretch; overflow:visible;
+  --base-left:260; --base-center:540; --base-right:320; --base-gap:16;
+  min-width:calc(var(--base-left)*1px + var(--base-center)*1px + var(--base-right)*1px + 2*var(--base-gap));
+  margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw);
+  padding-left:0 !important; padding-right:0 !important;
+  column-gap:var(--gap);
+}
+.left-rail,.right-rail{ margin:0 !important; }
+.left-rail  { grid-area:left;  overflow:auto; max-height:calc(100dvh - var(--header-h) - var(--gap)); }
+.center-rail{ grid-area:center; min-width:0; display:grid; place-items:center; }
+.right-rail { grid-area:right; overflow:auto; max-height:calc(100dvh - var(--header-h) - var(--gap)); display:flex; flex-direction:column; gap:var(--gap); }
+
+/* scrollbars panel */
+.left-rail::-webkit-scrollbar,.right-rail::-webkit-scrollbar{ width:8px }
+.left-rail::-webkit-scrollbar-thumb,.right-rail::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.15); border-radius:8px }
+/* === MISSION PROGRESS (Right panel) — unified === */
+
+/* 1) Dạng <div class="bar"><span class="mis-fill">… */
+.right-rail .bar{
+  width:100%; height:10px;
+  margin-top:6px;
+  border:2px solid #000; border-radius:999px;
+  background:#fff; overflow:hidden;
+}
+.right-rail .bar > span,
+.right-rail .mis-fill{
+  display:block; height:100%; width:0%;
+  background:linear-gradient(90deg,#16a34a,#facc15);
+  transition: width .15s ease;
+}
+
+/* 2) Dạng <progress> */
+.right-rail progress{
+  width:100%; height:10px; vertical-align:middle;
+  border:2px solid #000; border-radius:999px;
+  background:#fff; appearance:none; -webkit-appearance:none; overflow:hidden;
+}
+.right-rail progress::-webkit-progress-bar{ background:#fff; border-radius:999px; }
+.right-rail progress::-webkit-progress-value{
+  background:linear-gradient(90deg,#16a34a,#facc15); border-radius:999px;
+}
+.right-rail progress::-moz-progress-bar{
+  background:linear-gradient(90deg,#16a34a,#facc15); border-radius:999px;
+}
+
+/* (Tùy chọn) Ẩn pill HUD nếu bạn không muốn hiển thị song song */
+.hud-mission{ display:none !important; }
+
+/* =======================
+   LEFT PANEL (How-to)
+   ======================= */
+.left-rail{
+  background:var(--surface);
+  border:2px solid #000; border-radius:var(--radius);
+  padding:12px; box-shadow:var(--shadow);
+}
+.howto{ overflow:auto; height:calc(100% - 44px); padding-right:6px; }
+.howto .howto-sec{ margin-bottom:14px; }
+.howto .howto-list{ margin:6px 0 0 18px; line-height:1.55; color:#243; }
+
+/* =======================
+   GAME STAGE (CENTER)
+   ======================= */
+.game-stage{
+  position:relative; width:auto; max-width:100%; height:100%;
+  aspect-ratio:3/4; background:var(--surface);
+  border:2px solid #000; border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden; z-index:0;
+}
+.game-stage:hover{ box-shadow:0 16px 40px rgba(0,0,0,.18); }
+.game-stage canvas{ position:absolute; inset:0; }
+
+/* HUD */
+.hud{ position:absolute; left:12px; top:10px; display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+.hud .pill,.hud .hud-coins{
+  min-width:76px; padding:8px 10px; border:2px solid #000; border-radius:999px;
+  background:#fff; box-shadow:var(--shadow); font-weight:700; display:inline-flex; align-items:center; gap:8px;
+}
+.hud .hud-coins{ min-width:auto; line-height:1; }
+.hud .ghost{ opacity:.85; }
+.top-right{ position:absolute; right:12px; top:10px; }
+.btn.circle{ width:44px; height:44px; border-radius:999px; }
+
+.combo{ position:absolute; left:50%; top:62px; transform:translateX(-50%); width:min(92%,520px); pointer-events:none; }
+.combo.hidden{ display:none; }
+.combo-bar{ width:100%; height:10px; border:2px solid #000; border-radius:999px; background:#fff; overflow:hidden; }
+#comboFill{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#facc15); }
+.combo-label{ margin-top:6px; font-weight:800; text-align:center; text-shadow:0 2px 12px rgba(0,0,0,.25); }
+
+.toast{
+  position:absolute; left:50%; top:10px; transform:translateX(-50%);
+  border:2px solid #000; background:#111827; color:#fff; padding:8px 12px; border-radius:10px; font-weight:800;
+  box-shadow:var(--shadow);
+}
+.toast.hidden{ display:none; }
+
+.overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.22); }
+.overlay.hidden{ display:none; }
+.overlay .row{ display:flex; gap:10px; }
+
+/* =======================
+   RIGHT PANELS
+   ======================= */
+.panel{
+  background:var(--surface); border:2px solid #000; border-radius:14px;
+  box-shadow:var(--shadow); padding:12px;
+  transition:box-shadow .15s ease, transform .12s ease;
+}
+.panel:hover{ box-shadow:0 12px 30px rgba(0,0,0,.16); }
+.panel-title{ display:flex; align-items:center; gap:8px; margin:0 0 8px; font-weight:800; font-size:1.2rem; }
+.panel .ico{ width:18px; height:18px; display:inline-block; }
+
+/* =======================
+   ICONS (coin)
+   ======================= */
+.coin-icon{
+  width:18px; height:18px; border-radius:50%; border:2px solid #000; display:inline-block;
+  background:
+    radial-gradient(circle at 35% 35%, #fff7c2 0 30%, transparent 31%),
+    radial-gradient(circle at 65% 65%, #ffd95a 0 40%, #ffca2b 41% 70%, #f0b100 71% 100%);
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.05);
+}
+
+/* =======================
+   SHOP (MERGED)
+   ======================= */
+.shop-coins{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; margin-bottom:10px; width:max-content;
+  border:2px solid #000; border-radius:999px; background:#fff; font-weight:800;
+}
+.shop-coins .label{ margin-right:2px; color:#111; }
+.shop-coins .coin-text{ min-width:28px; text-align:right; }
+
+.shop-tabs{ display:flex; gap:8px; margin:8px 0 10px; }
+.shop-tab{
+  border:2px solid #000; border-radius:999px; background:#fff; padding:6px 12px;
+  font-weight:800; cursor:pointer; transition:transform .08s ease, box-shadow .12s ease, background .12s ease;
+}
+.shop-tab:hover{ transform:translateY(-1px); }
+.shop-tab.active{ background:#fff1c9; }
+
+.shop-list{ display:flex; flex-direction:column; gap:10px; }
+.shop-item{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+  padding:10px; border:2px solid #000; border-radius:12px; background:#fff;
+  box-shadow:0 6px 16px rgba(0,0,0,.10);
+  transition:transform .08s ease, box-shadow .12s ease;
+}
+.shop-item:hover{ transform:translateY(-1px); box-shadow:0 10px 26px rgba(0,0,0,.16); }
+
+/* meta dùng grid an toàn (icon | title/desc) */
+.shop-item .meta{
+  flex:1 1 auto; min-width:0;
+  display:grid; grid-template-columns:42px 1fr; grid-template-areas:"ico title" "ico desc";
+  align-items:center; gap:8px 12px;
+}
+.shop-item .shop-ico{ grid-area:ico; width:36px; height:36px; border:2px solid #000; border-radius:10px; background:#fff; box-shadow:inset 0 0 0 2px rgba(0,0,0,.04); }
+.shop-item .meta .title{
+  grid-area:title; font-weight:800; line-height:1.15; white-space:normal;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden;
+}
+.shop-item .meta .desc{ grid-area:desc; color:var(--muted); font-size:.92rem; overflow:hidden; text-overflow:ellipsis; }
+
+.shop-item .actions{
+  flex:0 0 auto; display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap; max-width:38%;
+}
+@media (max-width:980px){ .shop-item .actions{ max-width:100%; } }
+
+.btn-buy,.btn-equip,.btn-unequip{
+  border:2px solid #000; border-radius:12px; padding:7px 12px; font-weight:800; cursor:pointer;
+  background:#fff; transition:transform .08s ease, box-shadow .12s ease, background .12s ease;
+}
+.btn-buy{ background:#fffbe6; }
+.btn-equip{ background:#e8fff5; }
+.btn-unequip{ background:#ffecec; }
+.btn-buy:hover,.btn-equip:hover,.btn-unequip:hover{ transform:translateY(-1px); }
+.btn-buy:active,.btn-equip:active,.btn-unequip:active{ transform:translateY(0); }
+.btn-equip:disabled{ opacity:.65; cursor:default; filter:saturate(.85); box-shadow:none; transform:none; }
+
+/* ====== Shop icons (cũ + mới, duy nhất) ====== */
+.shop-ico{ position:relative; display:inline-block; }
+
+/* Player basic */
+.shop-ico.ico-player-blue{ background:linear-gradient(#4f80ff 0 60%, #3a68e0 60% 100%) }
+.shop-ico.ico-player-red { background:linear-gradient(#ff5b5b 0 60%, #e04040 60% 100%) }
+.shop-ico.ico-player-panda{
+  background:
+    radial-gradient(circle at 26% 32%, #000 0 6px, transparent 7px),
+    radial-gradient(circle at 74% 32%, #000 0 6px, transparent 7px),
+    linear-gradient(#fff 0 60%, #ededed 60% 100%);
+  overflow:hidden;
+}
+.shop-ico.ico-player-panda::after{ content:""; position:absolute; left:8px; right:8px; bottom:6px; height:6px; background:#000; border-radius:6px }
+
+/* Player: Yakuza */
+.shop-ico.ico-player-yakuza{ background:linear-gradient(#111 0 55%, #222 55% 100%) }
+.shop-ico.ico-player-yakuza::before{
+  content:""; position:absolute; left:5px; right:5px; top:9px; height:8px; background:#0a0a0a; border:2px solid #000; border-radius:6px;
+}
+.shop-ico.ico-player-yakuza::after{
+  content:""; position:absolute; width:18px; height:6px; right:2px; bottom:6px; background:#caa472; border:2px solid #000; border-radius:6px; transform:rotate(-18deg);
+}
+
+/* Player: Superman */
+.shop-ico.ico-player-superman{ background:linear-gradient(#2f6df6 0 60%, #2a5bd0 60% 100%) }
+.shop-ico.ico-player-superman::before{
+  content:""; position:absolute; left:2px; right:2px; bottom:4px; height:10px; background:#c51e1e; border:2px solid #000; border-radius:8px; transform:skewX(-6deg);
+}
+.shop-ico.ico-player-superman::after{
+  content:""; position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%) rotate(45deg);
+  background:#ffd34d; border:2px solid #000; box-shadow:inset 0 0 0 2px #c51e1e;
+}
+
+/* Obstacle basic */
+.shop-ico.ico-ob-pastel{ background:linear-gradient(135deg,#ffdede 0 50%, #def7ff 50% 100%) }
+.shop-ico.ico-ob-neon{
+  background:
+    radial-gradient(circle at 30% 30%, #0ff 0 14px, transparent 15px),
+    radial-gradient(circle at 70% 70%, #f0f 0 14px, transparent 15px), #111;
+}
+
+/* Obstacle: Orc */
+.shop-ico.ico-ob-orc{ background:#3aa652; border-color:#000 }
+.shop-ico.ico-ob-orc::before{
+  content:""; position:absolute; left:6px; top:6px; width:22px; height:22px; background:#3aa652; border:2px solid #2B2D42; border-radius:50%; box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);
+}
+.shop-ico.ico-ob-orc::after{
+  content:""; position:absolute; left:11px; top:14px; width:3px; height:3px; background:#111; border-radius:50%; box-shadow:6px 0 0 #111;
+}
+
+/* Obstacle: Slime (Green / Devil / Angel) – duy nhất */
+.shop-ico[class*="ico-ob-slime"]{ background:#c9f7ff; }
+.shop-ico.ico-ob-slime::before,
+.shop-ico.ico-ob-slime-green::before,
+.shop-ico.ico-ob-slime-devil::before,
+.shop-ico.ico-ob-slime-angel::before{
+  content:""; position:absolute; left:5px; right:5px; bottom:6px; height:18px;
+  background:#7fffb3; border:2px solid #2B2D42; border-radius:12px 12px 10px 10px;
+}
+.shop-ico.ico-ob-slime-devil::before{ background:#ff9ca1; }
+.shop-ico.ico-ob-slime-angel::before{ background:#c9f7ff; }
+.shop-ico.ico-ob-slime-devil::after{
+  content:""; position:absolute; left:8px; top:6px; width:0; height:0;
+  border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid #d94646;
+  filter: drop-shadow(10px 0 0 #d94646);
+}
+.shop-ico.ico-ob-slime-angel::after{
+  content:""; position:absolute; left:50%; top:6px; transform:translateX(-50%);
+  width:16px; height:8px; border:2px solid #ffd166; border-radius:999px; background:#fff8;
+}
+/* mắt chung */
+.shop-item .shop-ico > i,
+.shop-ico[class*="ico-ob-slime"] .eyes{
+  position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
+  box-shadow:8px 0 0 #111;
+}
+
+/* =======================
+   SMALL ICONS (emoji)
+   ======================= */
+.ico.book::before{ content:"📘"; }
+.ico.flag::before{ content:"🏁"; }
+.ico.cart::before{ content:"🛒"; }
+
+/* ================== HUD BEAUTY: Boss & Mission ================== */
+.hud-boss{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:8px 12px; min-width:220px;
+  border:2px solid #000; border-radius:999px; background:#fff; box-shadow:var(--shadow);
+}
+.boss-badge{
+  font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  padding:4px 10px; border-radius:999px; border:2px solid #000;
+  background:linear-gradient(135deg,#ffe2e2,#ffffff 55%);
+  box-shadow:0 0 18px rgba(255,107,107,.35),0 0 40px rgba(255,107,107,.2);
+}
+.boss-time{ position:relative; flex:1 1 auto; height:10px; border:2px solid #000; border-radius:999px; background:#fff; overflow:hidden; }
+.boss-time .bar{ position:absolute; inset:0; width:100%; background:linear-gradient(90deg,var(--boss-accent,#ff6b6b),#ffd1d1); box-shadow:0 0 12px rgba(255,107,107,.5); transition:width .15s ease-out; }
+.boss-sec{ font-weight:800; min-width:46px; text-align:right; }
+body.boss-mode   { --boss-accent:#ff6b6b; }
+body.boss-thunder{ --boss-accent:#f5e34b; }
+body.boss-dragon { --boss-accent:#ff8a3d; }
+
+/* Mission pill (HUD) */
+.hud-mission{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px; border:2px solid #000; border-radius:999px; background:#fff; box-shadow:var(--shadow);
+  font-weight:800;
+}
+.hud-mission .mis-bar{ width:120px; height:8px; border:2px solid #000; border-radius:999px; background:#fff; overflow:hidden; }
+.hud-mission .mis-fill{ height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#facc15); transition:width .15s ease; }
+
+@keyframes powerBlink{ 0%,100%{filter:none} 50%{filter:brightness(1.15)} }
+
+/* ================== SETTINGS OVERLAY (id & .modal đều hỗ trợ) ================== */
+/* ===== SETTINGS OVERLAY — SINGLE SOURCE OF TRUTH ===== */
+/* 1) Mặc định ẩn (kể cả khi có .modal) */
+#settingsOverlay { display: none !important; }
+
+/* 2) Khi KHÔNG có .hidden thì hiển thị dạng grid */
+#settingsOverlay:not(.hidden),
+#settingsOverlay.modal:not(.hidden) {
+  display: grid !important;
+  position: fixed; inset: 0; z-index: 9999;
+  place-items: center;
+  background: rgba(10,10,12,.58);
+  backdrop-filter: blur(3px);
+}
+
+/* 3) Card & layout bên trong (styling, không đụng hiển thị) */
+#settingsOverlay .settings-panel,
+#settingsOverlay .modal-card{
+  width: min(560px, 92vw);
+  background: #fff; color: #111;
+  border: 2px solid #000; border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.35);
+  padding: 16px 18px;
+}
+#settingsOverlay .settings-title{ font-weight: 800; font-size: 1.2rem; margin: 2px 0 6px; }
+#settingsOverlay .settings-row,
+#settingsOverlay .slider{
+  display: grid; grid-template-columns: 120px 1fr 64px;
+  align-items: center; gap: 10px; margin: 10px 0;
+}
+#settingsOverlay .settings-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+#settingsOverlay #btnCloseSettings{
+  height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 14px; font-weight:700; cursor:pointer;
+}
+#settingsOverlay #btnCloseSettings:hover{ transform: translateY(-1px); }
+
+.settings-panel{
+  width:min(560px,92vw); background:#fff; color:#111;
+  border:2px solid #000; border-radius:16px; box-shadow:0 24px 64px rgba(0,0,0,.35);
+  padding:16px 18px;
+}
+.settings-title{ font-weight:800; font-size:1.2rem; margin:2px 0 6px; }
+.settings-row{ display:grid; grid-template-columns:120px 1fr 64px; gap:10px; align-items:center; margin:10px 0; }
+.settings-row input[type="range"]{ width:100%; }
+.settings-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+#btnCloseSettings{
+  height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 14px; font-weight:700; cursor:pointer;
+}
+#btnCloseSettings:hover{ transform:translateY(-1px); }
+
+/* Biến thể .modal mà index có thể dùng */
+
+
+/* ===== Boss WARNING flash ===== */
+#bossWarn.boss-warning{
+  position:fixed; inset:0; z-index:9998; pointer-events:none;
+  display:grid; place-items:center;
+  opacity:0; transition:opacity .12s ease;
+}
+#bossWarn.active{ opacity:1; }
+#bossWarn.hidden{ display:none; }
+#bossWarn::before,#bossWarn::after{
+  content:""; position:absolute; left:0; right:0; height:8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.3) 0 18px, transparent 18px 36px),
+    linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.4));
+  filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));
+  animation:warnStripe .6s linear infinite;
+}
+#bossWarn::before{ top:0; } #bossWarn::after{ bottom:0; }
+#bossWarn .bw-inner{
+  padding:18px 26px; border:3px solid #000; border-radius:18px; background:#fff;
+  box-shadow:0 16px 48px rgba(0,0,0,.35); text-align:center;
+  transform:scale(.96); animation:warnPop .28s ease forwards, warnPulse .9s ease-in-out infinite;
+}
+#bossWarn .bw-title{
+  font-weight:900; font-size:clamp(28px,5vw,44px);
+  letter-spacing:.14em; text-transform:uppercase; margin-bottom:6px;
+}
+#bossWarn .bw-sub{ font-weight:800; font-size:clamp(16px,3.5vw,22px); opacity:.9; }
+#bossWarn.type-ufo    .bw-inner{ outline:6px solid rgba(255,107,107,.4); box-shadow:0 16px 48px rgba(255,107,107,.35); }
+#bossWarn.type-thunder .bw-inner{ outline:6px solid rgba(245,227,75,.4);  box-shadow:0 16px 48px rgba(245,227,75,.35); }
+#bossWarn.type-dragon .bw-inner{ outline:6px solid rgba(255,138,61,.4);  box-shadow:0 16px 48px rgba(255,138,61,.35); }
+@keyframes warnStripe{ to{ background-position-x:36px,0 } }
+@keyframes warnPop{ to{ transform:scale(1) } }
+@keyframes warnPulse{ 0%,100%{filter:none} 50%{filter:brightness(1.08) contrast(1.02)} }
+
+/* =======================
+   ACCESSIBILITY FOCUS
+   ======================= */
+.select:focus-visible,.btn:focus-visible,
+.btn-buy:focus-visible,.btn-equip:focus-visible,.btn-unequip:focus-visible,.shop-tab:focus-visible{
+  outline:3px solid #111; outline-offset:2px; box-shadow:0 0 0 4px rgba(0,0,0,.12);
+}
+/* ===== TYPOGRAPHY GAME STYLE (safe, no layout change) ===== */
+:root{
+  --font-display: "Jua", "Be Vietnam Pro", "Noto Sans KR", "Noto Sans", system-ui, sans-serif;
+  --font-body:    "Be Vietnam Pro", "Jua", "Noto Sans KR", system-ui, sans-serif;
+}
+
+/* Toàn site dùng body font “dễ đọc nhưng vẫn game” */
+body{ font-family: var(--font-body); letter-spacing:.2px; }
+
+/* Tiêu đề, logo, nhãn nút: dùng display font + đậm + viền nhẹ */
+h1,h2,h3,.logo,.panel-title,.rail-title,
+.btn,.btn-reset,.btn-buy,.btn-equip,.btn-unequip,
+.shop-tab,.hud .pill,.hud .hud-coins,.boss-badge,
+.select option, label, .mission-title, .shop-coins{
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: .4px;
+  /* “stroke” rất mỏng giúp chữ bật lên mà không rối */
+  -webkit-text-stroke: .3px rgba(0,0,0,.45);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+
+/* Tiêu đề trong right panel (Today's Missions…) */
+.right-rail h2, .right-rail h3{
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: .6px;
+  -webkit-text-stroke: .35px rgba(0,0,0,.45);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+
+/* Tên item trong shop: nổi bật nhưng không tràn layout */
+.shop-item .meta .title{
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: .3px;
+}
+
+/* Mô tả/nhỏ: giảm stroke, tăng tương phản nhẹ */
+.panel, .panel *:where(p,li,small,span),
+.right-rail, .left-rail, .howto, .howto *{
+  text-shadow: none;
+  -webkit-text-stroke: 0 transparent;
+}
+
+/* Nút & tab – “nhấn nổi” hơn nhưng không rung layout */
+.btn,.btn-reset,.btn-buy,.btn-equip,.btn-unequip,.shop-tab{
+  text-transform: none;              /* giữ nguyên chữ có dấu */
+  letter-spacing: .3px;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.2));
+}
+
+/* HUD con số/đơn vị – đậm rõ */
+.hud .pill,.hud .hud-coins,.hud-mission{
+  letter-spacing: .35px;
+}
+
+/* Combo label & toast – dễ đọc trên nền game */
+.combo-label,.toast{
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: .4px;
+  -webkit-text-stroke: .25px rgba(0,0,0,.35);
+}
+
+/* Select & option trong header: đồng bộ font */
+.top-actions .select, .top-actions .select option{
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+/* === LOGO HERO (Mascot Yakuza ngồi chỉ vào logo) === */
+.logo-hero{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 2; /* không chìm so với topbar */
+}
+.logo-hero .logo{
+  font-family: var(--font-logo, 'Teko', 'Rajdhani', system-ui, sans-serif);
+  font-weight: 900;
+  letter-spacing: .5px;
+  text-shadow: 0 2px 0 #000, 0 6px 18px rgba(0,0,0,.35);
+  transform: translateZ(0);
+}
+.logo-hero .logo-mascot{
+  position: relative;
+  width: 130px; height: 100px; /* ↓ nhỏ hơn để không che topbar */
+  margin: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 24px rgba(0,0,0,.25));
+  transform-origin: 60% 80%;
+  animation: mascot-bob 3.2s ease-in-out infinite;
+}
+
+.yakuza-svg{ width: 100%; height: auto; display: block; }
+
+.yakuza-svg{ display:block; }
+.yakuza-svg .right-arm{
+  transform-origin: 0% 50%;
+  animation: arm-idle 1.8s ease-in-out infinite;
+}
+.yakuza-svg .forearm{
+  transform-origin: 0% 50%;
+  animation: forearm-point 2.4s ease-in-out infinite;
+}
+.logo-hero:hover .yakuza-svg .forearm{ animation-duration: 1.4s; }
+.logo-hero:hover .logo{
+  text-shadow: 0 2px 0 #000, 0 0 22px rgba(255, 223, 120, .75);
+}
+@media (max-width: 980px){ .logo-hero .logo-mascot{ display:none; } }
+@keyframes mascot-bob{ 0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-.6deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes arm-idle{ 0%{transform:rotate(2deg)}50%{transform:rotate(-3deg)}100%{transform:rotate(2deg)}}
+@keyframes forearm-point{ 0%{transform:rotate(10deg)}50%{transform:rotate(22deg)}100%{transform:rotate(10deg)}}
