@@ -1,123 +1,134 @@
 /* =======================
-   GLOBAL & THEME
+   GLOBAL & THEME (MERGED)
    ======================= */
 :root{
+  /* màu chính */
   --bg:#fbf3e8;
   --surface:#f7ede2;
+  --paper:#ffffff;
+
+  /* text vars (giữ cả --text & --ink cho tương thích) */
   --text:#1f2937;
+  --ink:#101317;
+
   --muted:#6b7280;
   --brand:#0ea5b7;
   --accent:#ffd166;
 
+  /* hiệu ứng & kích thước */
   --radius:14px;
   --gap:16px;
   --header-h:64px;
-
   --shadow:0 10px 26px rgba(0,0,0,.14);
+
+  /* tone phụ dùng cho logo header */
+  --brand1:#ffdda6;  /* header bg */
+  --brand2:#ffd166;  /* warm accent */
+  --brand3:#22d3ee;  /* neon cyan */
+  --brand4:#a78bfa;  /* neon purple */
 }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
-
-/* Ẩn scrollbar ngoài – vẫn cho panel con cuộn được */
-html { overflow: hidden; }
+html{ overflow:hidden; }                 /* ẩn scrollbar ngoài – panel con vẫn cuộn */
 body{
-  margin:0;
-  color:var(--text);
-  background:var(--bg);
-  font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  margin:0; color:var(--text); background:var(--bg);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
 }
 
 /* =======================
-   TOP BAR
+   TOP BAR (MERGED)
    ======================= */
 .topbar{
+  position:relative; overflow:hidden;
   height:var(--header-h);
   display:flex; align-items:center; justify-content:space-between;
   padding:0 var(--gap);
-  background:#ffe4b5;
   border-bottom:2px solid #000;
+  background: linear-gradient(180deg, var(--brand1) 0%, #ffe5b9 100%);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.65);
 }
-.logo{ font-size:20px; font-weight:800; margin:0; }
 .top-actions{ display:flex; align-items:center; gap:10px; }
-.select, .btn, .btn-reset{
+.select,.btn,.btn-reset{
   height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 12px;
-  font-weight:600; cursor:pointer;
+  font-weight:600; cursor:pointer; transition:transform .08s ease, box-shadow .12s ease, background .12s ease, filter .12s ease;
 }
-.btn{ background:#fff; }
-.btn:hover{ transform:translateY(-1px); }
-.btn:active{ transform:translateY(0); }
+.btn:hover,.btn-reset:hover,.select:hover{ transform:translateY(-1px); }
+.btn:active,.btn-reset:active,.select:active{ transform:translateY(0); }
 .btn-reset{ background:#fff1c9; }
+.btn-reset:hover{ background:#ffe9c9; }
 
 /* =======================
-   SCALE ROOT – (nếu cần scale toàn trang)
-   ======================= */
-.scale-root{
-  width:max-content;
-  transform-origin: top center;
-  margin:0 auto;
-}
 
 /* =======================
    MAIN GRID (3 columns)
    ======================= */
+.scale-root{ width:max-content; transform-origin:top center; margin:0 auto; }
 .main-grid{
   height:calc(100dvh - var(--header-h));
   display:grid;
-  grid-template-columns: 260px minmax(540px,1fr) 320px; /* LEFT | CENTER | RIGHT */
-  grid-template-areas: "left center right";
-  gap: var(--gap);
-
-  /* Kéo panel sát 2 mép trái/phải, chỉ chừa gap giữa 3 cột */
-  padding: var(--gap) 0;
-
-  align-items: stretch;
-  overflow: visible;
-
-  --base-left:260;
-  --base-center:540;
-  --base-right:320;
-  --base-gap:16;
-  min-width: calc(var(--base-left)*1px + var(--base-center)*1px + var(--base-right)*1px + 2*var(--base-gap));
-
-  /* full-bleed tới mép viewport */
-  margin-left:  calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  column-gap: var(--gap);
+  grid-template-columns:260px minmax(540px,1fr) 320px;   /* LEFT | CENTER | RIGHT */
+  grid-template-areas:"left center right";
+  gap:var(--gap);
+  /* full-bleed 2 bên như bản gốc */
+  padding:var(--gap) 0;
+  align-items:stretch; overflow:visible;
+  --base-left:260; --base-center:540; --base-right:320; --base-gap:16;
+  min-width:calc(var(--base-left)*1px + var(--base-center)*1px + var(--base-right)*1px + 2*var(--base-gap));
+  margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw);
+  padding-left:0 !important; padding-right:0 !important;
+  column-gap:var(--gap);
 }
-.left-rail, .right-rail{ margin:0 !important; }
-
-/* Gán khu vực cho 3 cột */
-.left-rail  { grid-area:left;  overflow:auto; max-height: calc(100dvh - var(--header-h) - var(--gap)); }
+.left-rail,.right-rail{ margin:0 !important; }
+.left-rail  { grid-area:left;  overflow:auto; max-height:calc(100dvh - var(--header-h) - var(--gap)); }
 .center-rail{ grid-area:center; min-width:0; display:grid; place-items:center; }
-.right-rail { grid-area:right; overflow:auto; max-height: calc(100dvh - var(--header-h) - var(--gap)); display:flex; flex-direction:column; gap: var(--gap); }
+.right-rail { grid-area:right; overflow:auto; max-height:calc(100dvh - var(--header-h) - var(--gap)); display:flex; flex-direction:column; gap:var(--gap); }
 
-/* Ẩn thanh cuộn xấu (webkit) nhưng vẫn cuộn */
-.left-rail::-webkit-scrollbar,
-.right-rail::-webkit-scrollbar { width: 8px; }
-.left-rail::-webkit-scrollbar-track,
-.right-rail::-webkit-scrollbar-track { background: transparent; }
-.left-rail::-webkit-scrollbar-thumb,
-.right-rail::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,.15);
-  border-radius: 8px;
+/* scrollbars panel */
+.left-rail::-webkit-scrollbar,.right-rail::-webkit-scrollbar{ width:8px }
+.left-rail::-webkit-scrollbar-thumb,.right-rail::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.15); border-radius:8px }
+/* === MISSION PROGRESS (Right panel) — unified === */
+
+/* 1) Dạng <div class="bar"><span class="mis-fill">… */
+.right-rail .bar{
+  width:100%; height:10px;
+  margin-top:6px;
+  border:2px solid #000; border-radius:999px;
+  background:#fff; overflow:hidden;
 }
+.right-rail .bar > span,
+.right-rail .mis-fill{
+  display:block; height:100%; width:0%;
+  background:linear-gradient(90deg,#16a34a,#facc15);
+  transition: width .15s ease;
+}
+
+/* 2) Dạng <progress> */
+.right-rail progress{
+  width:100%; height:10px; vertical-align:middle;
+  border:2px solid #000; border-radius:999px;
+  background:#fff; appearance:none; -webkit-appearance:none; overflow:hidden;
+}
+.right-rail progress::-webkit-progress-bar{ background:#fff; border-radius:999px; }
+.right-rail progress::-webkit-progress-value{
+  background:linear-gradient(90deg,#16a34a,#facc15); border-radius:999px;
+}
+.right-rail progress::-moz-progress-bar{
+  background:linear-gradient(90deg,#16a34a,#facc15); border-radius:999px;
+}
+
+/* (Tùy chọn) Ẩn pill HUD nếu bạn không muốn hiển thị song song */
+.hud-mission{ display:none !important; }
 
 /* =======================
    LEFT PANEL (How-to)
    ======================= */
 .left-rail{
-  background: var(--surface);
-  border:2px solid #000; border-radius: var(--radius);
-  padding:12px; box-shadow: var(--shadow);
+  background:var(--surface);
+  border:2px solid #000; border-radius:var(--radius);
+  padding:12px; box-shadow:var(--shadow);
 }
-.rail-title{
-  display:flex; align-items:center; gap:8px;
-  margin:4px 0 8px; font-weight:800; font-size:1.25rem;
-}
-.howto{ overflow:auto; height: calc(100% - 44px); padding-right:6px; }
+.howto{ overflow:auto; height:calc(100% - 44px); padding-right:6px; }
 .howto .howto-sec{ margin-bottom:14px; }
 .howto .howto-list{ margin:6px 0 0 18px; line-height:1.55; color:#243; }
 
@@ -125,25 +136,21 @@ body{
    GAME STAGE (CENTER)
    ======================= */
 .game-stage{
-  position:relative;
-  height:100%;
-  width:auto;
-  max-width:100%;
-  aspect-ratio:3/4;
-  background:var(--surface);
+  position:relative; width:auto; max-width:100%; height:100%;
+  aspect-ratio:3/4; background:var(--surface);
   border:2px solid #000; border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  overflow:hidden; z-index:0;
+  box-shadow:var(--shadow); overflow:hidden; z-index:0;
 }
+.game-stage:hover{ box-shadow:0 16px 40px rgba(0,0,0,.18); }
 .game-stage canvas{ position:absolute; inset:0; }
 
 /* HUD */
 .hud{ position:absolute; left:12px; top:10px; display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
-.hud .pill{
+.hud .pill,.hud .hud-coins{
   min-width:76px; padding:8px 10px; border:2px solid #000; border-radius:999px;
-  background:#fff; box-shadow: var(--shadow); font-weight:700;
-  display:inline-flex; align-items:center; gap:8px;
+  background:#fff; box-shadow:var(--shadow); font-weight:700; display:inline-flex; align-items:center; gap:8px;
 }
+.hud .hud-coins{ min-width:auto; line-height:1; }
 .hud .ghost{ opacity:.85; }
 .top-right{ position:absolute; right:12px; top:10px; }
 .btn.circle{ width:44px; height:44px; border-radius:999px; }
@@ -154,8 +161,10 @@ body{
 #comboFill{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#facc15); }
 .combo-label{ margin-top:6px; font-weight:800; text-align:center; text-shadow:0 2px 12px rgba(0,0,0,.25); }
 
-.toast{ position:absolute; left:50%; top:10px; transform:translateX(-50%);
+.toast{
+  position:absolute; left:50%; top:10px; transform:translateX(-50%);
   border:2px solid #000; background:#111827; color:#fff; padding:8px 12px; border-radius:10px; font-weight:800;
+  box-shadow:var(--shadow);
 }
 .toast.hidden{ display:none; }
 
@@ -169,33 +178,17 @@ body{
 .panel{
   background:#fff; border:2px solid #000; border-radius:14px;
   box-shadow:var(--shadow); padding:12px;
+  transition:box-shadow .15s ease, transform .12s ease;
 }
+.panel:hover{ box-shadow:0 12px 30px rgba(0,0,0,.16); }
 .panel-title{ display:flex; align-items:center; gap:8px; margin:0 0 8px; font-weight:800; font-size:1.2rem; }
 .panel .ico{ width:18px; height:18px; display:inline-block; }
 
 /* =======================
-   ICONS (coin) & HUD coin (+run)
+   ICONS (coin)
    ======================= */
-.hud .hud-coins{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 12px;
-  border:2px solid #000;
-  border-radius:999px;
-  background:#fff;
-  box-shadow: var(--shadow);
-  font-weight:800;
-  min-width:auto;
-  line-height:1;
-}
-.hud .hud-coins.ghost{ opacity:.55; }
-
-/* Đồng xu vàng dùng chung (cho HUD & Shop) */
 .coin-icon{
-  width:18px; height:18px; border-radius:50%;
-  display:inline-block;
-  border:2px solid #000;
+  width:18px; height:18px; border-radius:50%; border:2px solid #000; display:inline-block;
   background:
     radial-gradient(circle at 35% 35%, #fff7c2 0 30%, transparent 31%),
     radial-gradient(circle at 65% 65%, #ffd95a 0 40%, #ffca2b 41% 70%, #f0b100 71% 100%);
@@ -203,35 +196,142 @@ body{
 }
 
 /* =======================
-   SHOP
+   SHOP (MERGED)
    ======================= */
 .shop-coins{
   display:flex; align-items:center; gap:10px;
-  padding:8px 10px; margin-bottom:10px;
-  border:2px solid #000; border-radius:999px; background:#fff;
-  font-weight:800; width:max-content;
+  padding:8px 10px; margin-bottom:10px; width:max-content;
+  border:2px solid #000; border-radius:999px; background:#fff; font-weight:800;
 }
 .shop-coins .label{ margin-right:2px; color:#111; }
 .shop-coins .coin-text{ min-width:28px; text-align:right; }
 
+.shop-tabs{ display:flex; gap:8px; margin:8px 0 10px; }
+.shop-tab{
+  border:2px solid #000; border-radius:999px; background:#fff; padding:6px 12px;
+  font-weight:800; cursor:pointer; transition:transform .08s ease, box-shadow .12s ease, background .12s ease;
+}
+.shop-tab:hover{ transform:translateY(-1px); }
+.shop-tab.active{ background:#fff1c9; }
+
 .shop-list{ display:flex; flex-direction:column; gap:10px; }
 .shop-item{
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
   padding:10px; border:2px solid #000; border-radius:12px; background:#fff;
+  box-shadow:0 6px 16px rgba(0,0,0,.10);
+  transition:transform .08s ease, box-shadow .12s ease;
 }
-.shop-item .meta{ display:flex; align-items:center; gap:10px; }
-.shop-item .meta .title{ font-weight:800; }
-.shop-item .meta .desc{ color:var(--muted); font-size:.92rem; }
-.shop-item .actions{ display:flex; gap:8px; }
-.btn-buy, .btn-equip, .btn-unequip{
-  border:2px solid #000; border-radius:10px; padding:6px 10px; font-weight:700; cursor:pointer; background:#fff;
+.shop-item:hover{ transform:translateY(-1px); box-shadow:0 10px 26px rgba(0,0,0,.16); }
+
+/* meta dùng grid an toàn (icon | title/desc) */
+.shop-item .meta{
+  flex:1 1 auto; min-width:0;
+  display:grid; grid-template-columns:42px 1fr; grid-template-areas:"ico title" "ico desc";
+  align-items:center; gap:8px 12px;
+}
+.shop-item .shop-ico{ grid-area:ico; width:36px; height:36px; border:2px solid #000; border-radius:10px; background:#fff; box-shadow:inset 0 0 0 2px rgba(0,0,0,.04); }
+.shop-item .meta .title{
+  grid-area:title; font-weight:800; line-height:1.15; white-space:normal;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden;
+}
+.shop-item .meta .desc{ grid-area:desc; color:var(--muted); font-size:.92rem; overflow:hidden; text-overflow:ellipsis; }
+
+.shop-item .actions{
+  flex:0 0 auto; display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap; max-width:38%;
+}
+@media (max-width:980px){ .shop-item .actions{ max-width:100%; } }
+
+.btn-buy,.btn-equip,.btn-unequip{
+  border:2px solid #000; border-radius:12px; padding:7px 12px; font-weight:800; cursor:pointer;
+  background:#fff; transition:transform .08s ease, box-shadow .12s ease, background .12s ease;
 }
 .btn-buy{ background:#fffbe6; }
 .btn-equip{ background:#e8fff5; }
 .btn-unequip{ background:#ffecec; }
+.btn-buy:hover,.btn-equip:hover,.btn-unequip:hover{ transform:translateY(-1px); }
+.btn-buy:active,.btn-equip:active,.btn-unequip:active{ transform:translateY(0); }
+.btn-equip:disabled{ opacity:.65; cursor:default; filter:saturate(.85); box-shadow:none; transform:none; }
+
+/* ====== Shop icons (cũ + mới, duy nhất) ====== */
+.shop-ico{ position:relative; display:inline-block; }
+
+/* Player basic */
+.shop-ico.ico-player-blue{ background:linear-gradient(#4f80ff 0 60%, #3a68e0 60% 100%) }
+.shop-ico.ico-player-red { background:linear-gradient(#ff5b5b 0 60%, #e04040 60% 100%) }
+.shop-ico.ico-player-panda{
+  background:
+    radial-gradient(circle at 26% 32%, #000 0 6px, transparent 7px),
+    radial-gradient(circle at 74% 32%, #000 0 6px, transparent 7px),
+    linear-gradient(#fff 0 60%, #ededed 60% 100%);
+  overflow:hidden;
+}
+.shop-ico.ico-player-panda::after{ content:""; position:absolute; left:8px; right:8px; bottom:6px; height:6px; background:#000; border-radius:6px }
+
+/* Player: Yakuza */
+.shop-ico.ico-player-yakuza{ background:linear-gradient(#111 0 55%, #222 55% 100%) }
+.shop-ico.ico-player-yakuza::before{
+  content:""; position:absolute; left:5px; right:5px; top:9px; height:8px; background:#0a0a0a; border:2px solid #000; border-radius:6px;
+}
+.shop-ico.ico-player-yakuza::after{
+  content:""; position:absolute; width:18px; height:6px; right:2px; bottom:6px; background:#caa472; border:2px solid #000; border-radius:6px; transform:rotate(-18deg);
+}
+
+/* Player: Superman */
+.shop-ico.ico-player-superman{ background:linear-gradient(#2f6df6 0 60%, #2a5bd0 60% 100%) }
+.shop-ico.ico-player-superman::before{
+  content:""; position:absolute; left:2px; right:2px; bottom:4px; height:10px; background:#c51e1e; border:2px solid #000; border-radius:8px; transform:skewX(-6deg);
+}
+.shop-ico.ico-player-superman::after{
+  content:""; position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%) rotate(45deg);
+  background:#ffd34d; border:2px solid #000; box-shadow:inset 0 0 0 2px #c51e1e;
+}
+
+/* Obstacle basic */
+.shop-ico.ico-ob-pastel{ background:linear-gradient(135deg,#ffdede 0 50%, #def7ff 50% 100%) }
+.shop-ico.ico-ob-neon{
+  background:
+    radial-gradient(circle at 30% 30%, #0ff 0 14px, transparent 15px),
+    radial-gradient(circle at 70% 70%, #f0f 0 14px, transparent 15px), #111;
+}
+
+/* Obstacle: Orc */
+.shop-ico.ico-ob-orc{ background:#3aa652; border-color:#000 }
+.shop-ico.ico-ob-orc::before{
+  content:""; position:absolute; left:6px; top:6px; width:22px; height:22px; background:#3aa652; border:2px solid #2B2D42; border-radius:50%; box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);
+}
+.shop-ico.ico-ob-orc::after{
+  content:""; position:absolute; left:11px; top:14px; width:3px; height:3px; background:#111; border-radius:50%; box-shadow:6px 0 0 #111;
+}
+
+/* Obstacle: Slime (Green / Devil / Angel) – duy nhất */
+.shop-ico[class*="ico-ob-slime"]{ background:#c9f7ff; }
+.shop-ico.ico-ob-slime::before,
+.shop-ico.ico-ob-slime-green::before,
+.shop-ico.ico-ob-slime-devil::before,
+.shop-ico.ico-ob-slime-angel::before{
+  content:""; position:absolute; left:5px; right:5px; bottom:6px; height:18px;
+  background:#7fffb3; border:2px solid #2B2D42; border-radius:12px 12px 10px 10px;
+}
+.shop-ico.ico-ob-slime-devil::before{ background:#ff9ca1; }
+.shop-ico.ico-ob-slime-angel::before{ background:#c9f7ff; }
+.shop-ico.ico-ob-slime-devil::after{
+  content:""; position:absolute; left:8px; top:6px; width:0; height:0;
+  border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid #d94646;
+  filter: drop-shadow(10px 0 0 #d94646);
+}
+.shop-ico.ico-ob-slime-angel::after{
+  content:""; position:absolute; left:50%; top:6px; transform:translateX(-50%);
+  width:16px; height:8px; border:2px solid #ffd166; border-radius:999px; background:#fff8;
+}
+/* mắt chung */
+.shop-item .shop-ico > i,
+.shop-ico[class*="ico-ob-slime"] .eyes{
+  position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
+  box-shadow:8px 0 0 #111;
+}
 
 /* =======================
-   UTILITIES & SMALL ICONS
+   SMALL ICONS (emoji)
    ======================= */
 .ico.book::before{ content:"📘"; }
 .ico.flag::before{ content:"🏁"; }
@@ -241,146 +341,49 @@ body{
 .hud-boss{
   display:inline-flex; align-items:center; gap:10px;
   padding:8px 12px; min-width:220px;
-  border:2px solid #000; border-radius:999px; background:#fff;
-  box-shadow: var(--shadow);
+  border:2px solid #000; border-radius:999px; background:#fff; box-shadow:var(--shadow);
 }
 .boss-badge{
   font-weight:800; letter-spacing:.06em; text-transform:uppercase;
-  padding:4px 10px; border-radius:999px;
+  padding:4px 10px; border-radius:999px; border:2px solid #000;
   background:linear-gradient(135deg,#ffe2e2,#ffffff 55%);
-  border:2px solid #000;
-  box-shadow: 0 0 18px rgba(255,107,107,.35), 0 0 40px rgba(255,107,107,.2);
+  box-shadow:0 0 18px rgba(255,107,107,.35),0 0 40px rgba(255,107,107,.2);
 }
 .boss-time{ position:relative; flex:1 1 auto; height:10px; border:2px solid #000; border-radius:999px; background:#fff; overflow:hidden; }
-.boss-time .bar{ position:absolute; inset:0; width:100%;
-  background:linear-gradient(90deg, var(--boss-accent, #ff6b6b), #ffd1d1);
-  box-shadow: 0 0 12px rgba(255,107,107,.5);
-  transition: width .15s ease-out;
-}
+.boss-time .bar{ position:absolute; inset:0; width:100%; background:linear-gradient(90deg,var(--boss-accent,#ff6b6b),#ffd1d1); box-shadow:0 0 12px rgba(255,107,107,.5); transition:width .15s ease-out; }
 .boss-sec{ font-weight:800; min-width:46px; text-align:right; }
+body.boss-mode   { --boss-accent:#ff6b6b; }
+body.boss-thunder{ --boss-accent:#f5e34b; }
+body.boss-dragon { --boss-accent:#ff8a3d; }
 
-/* đổi accent theo body class */
-body.boss-mode { --boss-accent:#ff6b6b; }
-body.boss-thunder { --boss-accent:#f5e34b; }
-body.boss-dragon  { --boss-accent:#ff8a3d; }
-
-/* Mission pill (trên HUD) */
+/* Mission pill (HUD) */
 .hud-mission{
   display:inline-flex; align-items:center; gap:8px;
-  padding:8px 12px; border:2px solid #000; border-radius:999px; background:#fff; box-shadow: var(--shadow);
+  padding:8px 12px; border:2px solid #000; border-radius:999px; background:#fff; box-shadow:var(--shadow);
   font-weight:800;
 }
 .hud-mission .mis-bar{ width:120px; height:8px; border:2px solid #000; border-radius:999px; background:#fff; overflow:hidden; }
-.hud-mission .mis-fill{ height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#facc15); transition: width .15s ease; }
+.hud-mission .mis-fill{ height:100%; width:0%; background:linear-gradient(90deg,#16a34a,#facc15); transition:width .15s ease; }
 
-/* tiny blink khi dùng skill – được HUD.usePowerBlink() gọi */
-@keyframes powerBlink { 0%,100%{ filter:none } 50%{ filter:brightness(1.15) } }
+@keyframes powerBlink{ 0%,100%{filter:none} 50%{filter:brightness(1.15)} }
 
-/* ================== SETTINGS OVERLAY (menu chỉnh SFX/Music) ================== */
-#settingsOverlay{
-  position:fixed; inset:0; z-index:9999;
-  background:rgba(10,10,12,.58);
-  backdrop-filter: blur(3px);
-  display:grid; place-items:center;
-}
-#settingsOverlay.hidden{ display:none; }
-.settings-panel{
-  width:min(560px, 92vw);
-  background:#fff; color:#111;
-  border:2px solid #000; border-radius:16px;
-  box-shadow: 0 24px 64px rgba(0,0,0,.35);
-  padding:16px 18px;
-}
-.settings-title{ font-weight:800; font-size:1.2rem; margin:2px 0 6px; }
-.settings-row{ display:grid; grid-template-columns: 120px 1fr 64px; gap:10px; align-items:center; margin:10px 0; }
-.settings-row input[type="range"]{ width:100%; }
-.settings-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
-#btnCloseSettings{
-  height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 14px; font-weight:700; cursor:pointer;
-}
-#btnCloseSettings:hover{ transform: translateY(-1px); }
+/* ================== SETTINGS OVERLAY (id & .modal đều hỗ trợ) ================== */
+/* ===== SETTINGS OVERLAY — SINGLE SOURCE OF TRUTH ===== */
+/* 1) Mặc định ẩn (kể cả khi có .modal) */
+#settingsOverlay { display: none !important; }
 
-/* ===== Boss WARNING flash (toàn màn hình, ngắn) ===== */
-#bossWarn.boss-warning{
-  position:fixed; inset:0; z-index:9998; pointer-events:none;
-  display:grid; place-items:center;
-  opacity:0; transition: opacity .12s ease;
-}
-#bossWarn.active{ opacity:1; }
-#bossWarn.hidden{ display:none; }
-
-#bossWarn::before, #bossWarn::after{
-  content:""; position:absolute; left:0; right:0; height:8px;
-  background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,.3) 0 18px, transparent 18px 36px),
-    linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.4));
-  filter: drop-shadow(0 6px 8px rgba(0,0,0,.35));
-  animation: warnStripe 0.6s linear infinite;
-}
-#bossWarn::before{ top:0; }
-#bossWarn::after { bottom:0; }
-
-#bossWarn .bw-inner{
-  padding: 18px 26px;
-  border: 3px solid #000; border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 16px 48px rgba(0,0,0,.35);
-  text-align:center;
-  transform: scale(.96);
-  animation: warnPop .28s ease forwards, warnPulse .9s ease-in-out infinite;
-}
-#bossWarn .bw-title{
-  font-weight: 900; font-size: clamp(28px, 5vw, 44px);
-  letter-spacing: .14em; text-transform: uppercase;
-  margin-bottom: 6px;
-}
-#bossWarn .bw-sub{
-  font-weight:800; font-size: clamp(16px, 3.5vw, 22px);
-  opacity:.9;
-}
-
-/* Accent theo loại boss */
-#bossWarn.type-ufo .bw-inner  { outline: 6px solid rgba(255,107,107,.4); box-shadow: 0 16px 48px rgba(255,107,107,.35); }
-#bossWarn.type-thunder .bw-inner{ outline: 6px solid rgba(245,227,75,.4);  box-shadow: 0 16px 48px rgba(245,227,75,.35); }
-#bossWarn.type-dragon .bw-inner { outline: 6px solid rgba(255,138,61,.4);  box-shadow: 0 16px 48px rgba(255,138,61,.35); }
-
-/* Animations */
-@keyframes warnStripe { to { background-position-x: 36px, 0; } }
-@keyframes warnPop   { to { transform: scale(1); } }
-@keyframes warnPulse {
-  0%,100% { filter: none; }
-  50%     { filter: brightness(1.08) contrast(1.02); }
-}
-
-/* === MISSION PANEL PROGRESS BAR (panel bên phải) === */
-#panelMissions .bar{
-  width:100%; height:8px;
-  margin-top:6px;
-  border:2px solid #000; border-radius:999px;
-  background:#fff; overflow:hidden;
-}
-#panelMissions .bar > span{
-  display:block; height:100%; width:0%;
-  background:linear-gradient(90deg,#16a34a,#facc15);
-  transition: width .15s ease;
-}
-#panelMissions .mis-row{
-  display:grid; grid-template-columns: 1fr auto;
-  gap:8px; padding:6px 0; align-items:center;
-  border-bottom:1px dashed rgba(0,0,0,.1);
-}
-#panelMissions .mis-row .l{ font-weight:600; }
-#panelMissions .mis-row .r{ font-weight:700; }
-
-/* === SETTINGS (hỗ trợ markup .modal/.modal-card/.slider mà index.html đang dùng) === */
-#settingsOverlay.modal{
+/* 2) Khi KHÔNG có .hidden thì hiển thị dạng grid */
+#settingsOverlay:not(.hidden),
+#settingsOverlay.modal:not(.hidden) {
+  display: grid !important;
   position: fixed; inset: 0; z-index: 9999;
-  display: grid; place-items: center;
+  place-items: center;
   background: rgba(10,10,12,.58);
   backdrop-filter: blur(3px);
 }
-#settingsOverlay.hidden{ display: none; }
 
+/* 3) Card & layout bên trong (styling, không đụng hiển thị) */
+#settingsOverlay .settings-panel,
 #settingsOverlay .modal-card{
   width: min(560px, 92vw);
   background: #fff; color: #111;
@@ -388,394 +391,143 @@ body.boss-dragon  { --boss-accent:#ff8a3d; }
   box-shadow: 0 24px 64px rgba(0,0,0,.35);
   padding: 16px 18px;
 }
-
-#settingsOverlay .modal-card .row{
-  display: flex; justify-content: flex-start; gap: 10px; margin-top: 10px;
-}
-
+#settingsOverlay .settings-title{ font-weight: 800; font-size: 1.2rem; margin: 2px 0 6px; }
+#settingsOverlay .settings-row,
 #settingsOverlay .slider{
-  display: grid;
-  grid-template-columns: 140px 1fr 64px;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+  display: grid; grid-template-columns: 120px 1fr 64px;
+  align-items: center; gap: 10px; margin: 10px 0;
 }
-#settingsOverlay .slider input[type="range"]{ width: 100%; }
-
-/* ======================================================
-   SHOP SKIN ICONS (thêm mới) – dùng với .shop-ico + .ico-*
-   ====================================================== */
-.shop-ico{
-  width:36px; height:36px; border:2px solid #000; border-radius:10px;
-  background:#fff; position:relative; flex:0 0 auto;
-  display:inline-block;
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,.04);
+#settingsOverlay .settings-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+#settingsOverlay #btnCloseSettings{
+  height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 14px; font-weight:700; cursor:pointer;
 }
+#settingsOverlay #btnCloseSettings:hover{ transform: translateY(-1px); }
 
-/* --- Player: Yakuza --- */
-.shop-ico.ico-player-yakuza{
+.settings-panel{
+  width:min(560px,92vw); background:#fff; color:#111;
+  border:2px solid #000; border-radius:16px; box-shadow:0 24px 64px rgba(0,0,0,.35);
+  padding:16px 18px;
+}
+.settings-title{ font-weight:800; font-size:1.2rem; margin:2px 0 6px; }
+.settings-row{ display:grid; grid-template-columns:120px 1fr 64px; gap:10px; align-items:center; margin:10px 0; }
+.settings-row input[type="range"]{ width:100%; }
+.settings-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+#btnCloseSettings{
+  height:36px; border:2px solid #000; border-radius:999px; background:#fff; padding:0 14px; font-weight:700; cursor:pointer;
+}
+#btnCloseSettings:hover{ transform:translateY(-1px); }
+
+/* Biến thể .modal mà index có thể dùng */
+
+
+/* ===== Boss WARNING flash ===== */
+#bossWarn.boss-warning{
+  position:fixed; inset:0; z-index:9998; pointer-events:none;
+  display:grid; place-items:center;
+  opacity:0; transition:opacity .12s ease;
+}
+#bossWarn.active{ opacity:1; }
+#bossWarn.hidden{ display:none; }
+#bossWarn::before,#bossWarn::after{
+  content:""; position:absolute; left:0; right:0; height:8px;
   background:
-    linear-gradient(#111 0 55%, #222 55% 100%); /* vest đen */
+    repeating-linear-gradient(90deg, rgba(255,255,255,.3) 0 18px, transparent 18px 36px),
+    linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.4));
+  filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));
+  animation:warnStripe .6s linear infinite;
 }
-.shop-ico.ico-player-yakuza::before{ /* kính đen */
-  content:""; position:absolute; left:5px; right:5px; top:9px; height:8px;
-  background:#0a0a0a; border:2px solid #000; border-radius:6px;
+#bossWarn::before{ top:0; } #bossWarn::after{ bottom:0; }
+#bossWarn .bw-inner{
+  padding:18px 26px; border:3px solid #000; border-radius:18px; background:#fff;
+  box-shadow:0 16px 48px rgba(0,0,0,.35); text-align:center;
+  transform:scale(.96); animation:warnPop .28s ease forwards, warnPulse .9s ease-in-out infinite;
 }
-.shop-ico.ico-player-yakuza::after{ /* gậy bóng chày */
-  content:""; position:absolute; width:18px; height:6px; right:2px; bottom:6px;
-  background:#caa472; border:2px solid #000; border-radius:6px;
-  transform: rotate(-18deg);
+#bossWarn .bw-title{
+  font-weight:900; font-size:clamp(28px,5vw,44px);
+  letter-spacing:.14em; text-transform:uppercase; margin-bottom:6px;
 }
+#bossWarn .bw-sub{ font-weight:800; font-size:clamp(16px,3.5vw,22px); opacity:.9; }
+#bossWarn.type-ufo    .bw-inner{ outline:6px solid rgba(255,107,107,.4); box-shadow:0 16px 48px rgba(255,107,107,.35); }
+#bossWarn.type-thunder .bw-inner{ outline:6px solid rgba(245,227,75,.4);  box-shadow:0 16px 48px rgba(245,227,75,.35); }
+#bossWarn.type-dragon .bw-inner{ outline:6px solid rgba(255,138,61,.4);  box-shadow:0 16px 48px rgba(255,138,61,.35); }
+@keyframes warnStripe{ to{ background-position-x:36px,0 } }
+@keyframes warnPop{ to{ transform:scale(1) } }
+@keyframes warnPulse{ 0%,100%{filter:none} 50%{filter:brightness(1.08) contrast(1.02)} }
 
-/* --- Player: Superman --- */
-.shop-ico.ico-player-superman{
-  background:
-    linear-gradient(#2f6df6 0 60%, #2a5bd0 60% 100%); /* suit xanh */
+/* =======================
+   ACCESSIBILITY FOCUS
+   ======================= */
+.select:focus-visible,.btn:focus-visible,
+.btn-buy:focus-visible,.btn-equip:focus-visible,.btn-unequip:focus-visible,.shop-tab:focus-visible{
+  outline:3px solid #111; outline-offset:2px; box-shadow:0 0 0 4px rgba(0,0,0,.12);
 }
-.shop-ico.ico-player-superman::before{ /* cape mép */
-  content:""; position:absolute; left:2px; right:2px; bottom:4px; height:10px;
-  background:#c51e1e; border:2px solid #000; border-radius:8px;
-  transform: skewX(-6deg);
-}
-.shop-ico.ico-player-superman::after{ /* logo S kim cương tối giản */
-  content:""; position:absolute; left:50%; top:50%;
-  width:14px; height:14px; transform: translate(-50%,-50%) rotate(45deg);
-  background:#ffd34d; border:2px solid #000;
-  box-shadow: inset 0 0 0 2px #c51e1e;
-}
-
-/* --- Obstacle: Orc --- */
-.shop-ico.ico-ob-orc{
-  background:#3aa652; border-color:#000;
-}
-.shop-ico.ico-ob-orc::before{ /* đầu orc */
-  content:""; position:absolute; left:6px; top:6px; width:22px; height:22px;
-  background:#3aa652; border:2px solid #2B2D42; border-radius:50%;
-  box-shadow: inset 0 -2px 0 0 rgba(0,0,0,.15);
-}
-.shop-ico.ico-ob-orc::after{ /* mắt */
-  content:""; position:absolute; left:11px; top:14px; width:3px; height:3px;
-  background:#111; border-radius:50%;
-  box-shadow: 6px 0 0 #111;
-}
-
-/* --- Obstacle: Slime (Green / Devil / Angel) --- */
-.shop-ico[class*="ico-ob-slime"]{
-  background:#c9f7ff;
-}
-.shop-ico.ico-ob-slime-green::before,
-.shop-ico.ico-ob-slime-devil::before,
-.shop-ico.ico-ob-slime-angel::before{
-  content:""; position:absolute; left:5px; right:5px; bottom:6px; height:18px;
-  background:#7fffb3; border:2px solid #2B2D42; border-radius:12px 12px 10px 10px;
-}
-
-/* devil: sừng và màu hơi đỏ */
-.shop-ico.ico-ob-slime-devil::before{ background:#ff9ca1; }
-.shop-ico.ico-ob-slime-devil::after{
-  content:""; position:absolute; left:8px; top:6px; width:0; height:0;
-  border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid #d94646;
-  filter: drop-shadow(10px 0 0 #d94646);
-}
-
-/* angel: halo vàng */
-.shop-ico.ico-ob-slime-angel::before{ background:#c9f7ff; }
-.shop-ico.ico-ob-slime-angel::after{
-  content:""; position:absolute; left:50%; top:6px; transform:translateX(-50%);
-  width:16px; height:8px; border:2px solid #ffd166; border-radius:999px; background:#fff8;
-}
-
-/* mắt slime (dùng chung) */
-.shop-ico[class*="ico-ob-slime"] .eyes{
-  position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
-  box-shadow: 8px 0 0 #111;
-}
-.shop-ico[class*="ico-ob-slime"]{ position:relative; }
-.shop-ico[class*="ico-ob-slime"]::marker{ content:none; } /* avoid list dots */
-
-/* Tạo mắt bằng phần tử phụ (tự động) */
-
-.shop-ico[class*="ico-ob-slime"]::after,
-.shop-ico[class*="ico-ob-slime"]::before{ pointer-events:none; }
-.shop-item .shop-ico{ position:relative; }
-.shop-item .shop-ico > i{
-  position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
-  box-shadow: 8px 0 0 #111;
-}
-/* ----- SHOP TABS (thêm mới) ----- */
-.shop-tabs{
-  display:flex; gap:8px; margin:8px 0 10px;
-}
-.shop-tab{
-  border:2px solid #000; border-radius:999px; background:#fff; padding:6px 12px;
-  font-weight:800; cursor:pointer;
-}
-.shop-tab.active{
-  background:#fff1c9;
-}
-
-/* ----- ICONS BỔ SUNG CHO ITEM CŨ ----- */
-/* Player basic */
-.shop-ico.ico-player-blue{
-  background: linear-gradient(#4f80ff 0 60%, #3a68e0 60% 100%);
-}
-.shop-ico.ico-player-red{
-  background: linear-gradient(#ff5b5b 0 60%, #e04040 60% 100%);
-}
-.shop-ico.ico-player-panda{
-  background:
-    radial-gradient(circle at 26% 32%, #000 0 6px, transparent 7px),
-    radial-gradient(circle at 74% 32%, #000 0 6px, transparent 7px),
-    linear-gradient(#fff 0 60%, #ededed 60% 100%);
-  overflow:hidden;
-}
-.shop-ico.ico-player-panda::after{
-  content:""; position:absolute; left:8px; right:8px; bottom:6px; height:6px;
-  background:#000; border-radius:6px;
-}
-
-/* Obstacle basic */
-.shop-ico.ico-ob-pastel{
-  background:
-    linear-gradient(135deg,#ffdede 0 50%, #def7ff 50% 100%);
-}
-.shop-ico.ico-ob-neon{
-  background:
-    radial-gradient(circle at 30% 30%, #0ff 0 14px, transparent 15px),
-    radial-gradient(circle at 70% 70%, #f0f 0 14px, transparent 15px),
-    #111;
-}
-
-/* Slime chung (icon tổng) */
-.shop-ico.ico-ob-slime{
-  background:#c9f7ff;
-}
-.shop-ico.ico-ob-slime::before{
-  content:""; position:absolute; left:5px; right:5px; bottom:6px; height:18px;
-  background:#7fffb3; border:2px solid #2B2D42; border-radius:12px 12px 10px 10px;
-}
-.shop-ico.ico-ob-slime::after{
-  content:""; position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
-  box-shadow: 8px 0 0 #111;
-}
-
-/* (giữ nguyên các ICON đã thêm trước đó: yakuza/superman/orc/slime-variants …) */
-
-/* ============================= */
-/* SHOP – TITLE CLAMP + NÚT SAFE */
-/* ============================= */
-
-/* Cho .meta chiếm phần còn lại, tránh đẩy nút tràn */
-.shop-item { align-items:flex-start; gap:12px; }
-.shop-item .meta { flex: 1 1 auto; min-width: 0; display:flex; align-items:center; gap:10px; }
-
-/* Tiêu đề 2 dòng thay vì 1: không còn "..." quá sớm */
-.shop-item .meta .title{
-  font-weight:800;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-   line-clamp: 2;          /* Tối đa 2 dòng */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  white-space: normal;
-  line-height: 1.15;
-  max-width: 68%;
-}
-
-/* Mô tả xám nhẹ, không chiếm chỗ của title */
-.shop-item .meta .desc{ color: var(--muted); font-size: .92rem; }
-
-/* Khu nút: cho phép xuống dòng khi hẹp, ko tràn panel */
-.shop-item .actions{
-  flex:0 0 auto; display:flex; gap:8px;
-  justify-content:flex-end; align-items:center;
-  flex-wrap:wrap;
-  max-width: 38%;
-}
-@media (max-width: 980px){
-  .shop-item .actions{ max-width:100%; }
-}
-
-/* Nút gọn và responsive */
-.btn-buy, .btn-equip, .btn-unequip{
-  white-space: nowrap; padding: 7px 12px; max-width: 100%;
-  border-radius: 12px;
-  transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
-}
-.btn-buy:hover, .btn-equip:hover, .btn-unequip:hover{ transform: translateY(-1px); }
-.btn-buy:active, .btn-equip:active, .btn-unequip:active{ transform: translateY(0); }
-.btn-equip:disabled{ opacity: .65; cursor: default; filter: saturate(.85); box-shadow:none; transform:none; }
-
-/* ============================= */
-/* DỌN “EMPTY RULESETS” – SLIME  */
-/* ============================= */
-/* Thay block slime icon bị lặp/để trống bằng nhóm gọn dưới:
-   (Nếu trước đó có các rule .shop-ico[class*="ico-ob-slime"] { } chỉ chứa comment,
-    bạn có thể xóa chúng; bản dưới đã đủ hiển thị mắt + biến thể.) */
-
-.shop-ico[class*="ico-ob-slime"]{
-  position: relative;
-  background:#c9f7ff;
-}
-.shop-ico.ico-ob-slime::before,
-.shop-ico.ico-ob-slime-green::before,
-.shop-ico.ico-ob-slime-devil::before,
-.shop-ico.ico-ob-slime-angel::before{
-  content:""; position:absolute; left:5px; right:5px; bottom:6px; height:18px;
-  background:#7fffb3; border:2px solid #2B2D42; border-radius:12px 12px 10px 10px;
-}
-/* biến thể */
-.shop-ico.ico-ob-slime-devil::before{ background:#ff9ca1; }     /* đỏ hồng */
-.shop-ico.ico-ob-slime-angel::before{ background:#c9f7ff; }     /* xanh nhạt */
-
-/* phụ kiện biến thể */
-.shop-ico.ico-ob-slime-devil::after{
-  content:""; position:absolute; left:8px; top:6px; width:0; height:0;
-  border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid #d94646;
-  filter: drop-shadow(10px 0 0 #d94646);
-}
-.shop-ico.ico-ob-slime-angel::after{
-  content:""; position:absolute; left:50%; top:6px; transform:translateX(-50%);
-  width:16px; height:8px; border:2px solid #ffd166; border-radius:999px; background:#fff8;
-}
-
-/* “mắt” chung cho mọi slime */
-.shop-item .shop-ico > i,
-.shop-ico[class*="ico-ob-slime"] .eyes{
-  position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
-  box-shadow: 8px 0 0 #111;
-}
-
-/* ============================= */
-/* POLISH TỔNG THỂ – NHẸ NHÀNG  */
-/* ============================= */
-
-/* Panel & item hover đồng bộ, không phá layout */
-.panel, .shop-item { transition: box-shadow .15s ease, transform .12s ease; }
-.shop-item:hover   { box-shadow: 0 10px 26px rgba(0,0,0,.16); }
-.panel:hover       { box-shadow: 0 12px 30px rgba(0,0,0,.16); }
-
-/* Focus ring nhất quán khi dùng Tab */
-.select:focus-visible, .btn:focus-visible,
-.btn-buy:focus-visible, .btn-equip:focus-visible, .btn-unequip:focus-visible {
-  outline: 3px solid #111; outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(0,0,0,.12);
-}
-
-/* Nhẹ nhàng nâng tone (có thể đổi nhanh tại 2 biến dưới) */
-:root{ --brand: #0ea5b7; --accent:#ffd166; }
-.btn-reset:hover{ background:#ffe9c9; }
-/* === SHOP: bố cục text an toàn, không chèn nhau === */
-.shop-item .meta{
-  display:grid;
-  grid-template-columns: 42px 1fr;                /* icon | text */
-  grid-template-areas: "ico title" "ico desc";   /* 2 hàng: title & desc */
-  align-items:center;
-  gap:8px 12px;
-  flex: 1 1 auto; min-width:0;
-}
-.shop-item .shop-ico{ grid-area: ico; }
-
-.shop-item .meta .title{
-  grid-area: title;
-  font-weight:800;
-  display:-webkit-box;
-  -webkit-line-clamp:2;              /* tối đa 2 dòng thay vì 1 */
-   line-clamp: 2; 
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-  white-space:normal;
-  line-height:1.15;
-}
-
-.shop-item .meta .desc{
-  grid-area: desc;
-  color: var(--muted);
-  font-size:.92rem;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-/* vùng nút giữ gọn và không tràn */
-.shop-item .actions{
-  flex:0 0 auto; display:flex; gap:8px;
-  justify-content:flex-end; align-items:center;
-  flex-wrap:wrap; max-width:38%;
-}
-@media (max-width: 980px){
-  .shop-item .actions{ max-width:100%; }
-}
-
-/* =========================
-   POWER LOGO (đậm – nổi bật)
-   ========================= */
+/* ===== TYPOGRAPHY GAME STYLE (safe, no layout change) ===== */
 :root{
-  --brand1:#ffdda6;      /* header bg */
-  --brand2:#ffd166;      /* warm accent */
-  --brand3:#22d3ee;      /* neon cyan */
-  --brand4:#a78bfa;      /* neon purple */
-  --ink:#101317;         /* text ink */
+  --font-display: "Jua", "Be Vietnam Pro", "Noto Sans KR", "Noto Sans", system-ui, sans-serif;
+  --font-body:    "Be Vietnam Pro", "Jua", "Noto Sans KR", system-ui, sans-serif;
 }
 
-.topbar{
-  position:relative; overflow:hidden;
-  background: linear-gradient(180deg, var(--brand1) 0%, #ffe5b9 100%);
-  box-shadow: inset 0 -2px 0 rgba(0,0,0,.65);
+/* Toàn site dùng body font “dễ đọc nhưng vẫn game” */
+body{ font-family: var(--font-body); letter-spacing:.2px; }
+
+/* Tiêu đề, logo, nhãn nút: dùng display font + đậm + viền nhẹ */
+h1,h2,h3,.logo,.panel-title,.rail-title,
+.btn,.btn-reset,.btn-buy,.btn-equip,.btn-unequip,
+.shop-tab,.hud .pill,.hud .hud-coins,.boss-badge,
+.select option, label, .mission-title, .shop-coins{
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: .4px;
+  /* “stroke” rất mỏng giúp chữ bật lên mà không rối */
+  -webkit-text-stroke: .3px rgba(0,0,0,.45);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 
-/* Logo: gradient + viền giả + phát sáng mạnh hơn */
-.logo{
-  position:relative;
-  padding: 12px 16px 14px;
-  font-weight: 950;
-  letter-spacing:.6px;
-  line-height:1;
-  color: transparent;
-  background:
-    linear-gradient(90deg, #fff 0%, #f3f3f3 20%, #d9e7ff 60%, #ffffff 100%) no-repeat;
-  -webkit-background-clip: text; background-clip: text;
-
-  /* viền chữ nổi (stroke giả) + glow */
-  text-shadow:
-    0 0 0 #111,
-    0 1px 0 #111,
-    0 2px 0 #111,
-    0 3px 0 #111,
-    0 6px 14px rgba(0,0,0,.28),
-    0 0 18px rgba(34,211,238,.6);
+/* Tiêu đề trong right panel (Today's Missions…) */
+.right-rail h2, .right-rail h3{
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: .6px;
+  -webkit-text-stroke: .35px rgba(0,0,0,.45);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 
-/* shine chạy qua chữ – rõ ràng hơn */
-.logo::after{
-  content:"";
-  position:absolute; inset:0; left:-35%;
-  background: linear-gradient(75deg, transparent 0%, rgba(255,255,255,.9) 48%, transparent 52%);
-  transform: skewX(-16deg);
-  animation: logoShine 3.6s ease-in-out infinite;
-  mix-blend-mode:screen; pointer-events:none;
-}
-@keyframes logoShine{
-  0%{ left:-40%; opacity:.0 }
-  10%{ opacity:.9 }
-  55%{ left:115%; opacity:.0 }
-  100%{ left:115%; opacity:.0 }
+/* Tên item trong shop: nổi bật nhưng không tràn layout */
+.shop-item .meta .title{
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: .3px;
 }
 
-/* gạch dưới neon nhịp rõ hơn */
-.logo::before{
-  content:"";
-  position:absolute; left:16px; bottom:-10px; height:5px;
-  width:180px; max-width:calc(100% - 32px);
-  background: linear-gradient(90deg, var(--brand3), var(--brand4));
-  border-radius:999px;
-  box-shadow:
-    0 0 12px var(--brand3),
-    0 0 22px var(--brand4),
-    0 8px 20px rgba(0,0,0,.18);
-  animation: underlinePulse 1.5s ease-in-out infinite;
-}
-@keyframes underlinePulse{
-  0%,100%{ transform: scaleX(.82); filter:brightness(1); }
-  50%    { transform: scaleX(1);    filter:brightness(1.25); }
+/* Mô tả/nhỏ: giảm stroke, tăng tương phản nhẹ */
+.panel, .panel *:where(p,li,small,span),
+.right-rail, .left-rail, .howto, .howto *{
+  text-shadow: none;
+  -webkit-text-stroke: 0 transparent;
 }
 
+/* Nút & tab – “nhấn nổi” hơn nhưng không rung layout */
+.btn,.btn-reset,.btn-buy,.btn-equip,.btn-unequip,.shop-tab{
+  text-transform: none;              /* giữ nguyên chữ có dấu */
+  letter-spacing: .3px;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.2));
+}
+
+/* HUD con số/đơn vị – đậm rõ */
+.hud .pill,.hud .hud-coins,.hud-mission{
+  letter-spacing: .35px;
+}
+
+/* Combo label & toast – dễ đọc trên nền game */
+.combo-label,.toast{
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: .4px;
+  -webkit-text-stroke: .25px rgba(0,0,0,.35);
+}
+
+/* Select & option trong header: đồng bộ font */
+.top-actions .select, .top-actions .select option{
+  font-family: var(--font-display);
+  font-weight: 800;
+}
