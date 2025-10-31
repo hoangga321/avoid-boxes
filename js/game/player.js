@@ -1,7 +1,7 @@
 // Funny Human Player — hỗ trợ skin đẹp & đổi ngay
 // Skins gốc: "skin.player.blue", "skin.player.red", "skin.player.panda"
-// NEW: "skin.player.yakuza" (kính + gậy bóng chày), "skin.player.superman" (cape + logo S)
-
+// Yakuza (nâng cấp): tóc slick-back, mặt giận dữ, sẹo xéo trên má, ve áo vest, cà-vạt đỏ, gậy bóng chày
+// Superman: cape + logo S
 export class Player {
   constructor(app) {
     this.app = app;
@@ -44,8 +44,8 @@ export class Player {
       };
     } else if (skinId === "skin.player.yakuza"){
       this.skin = {
-        body:"#ffe0b8", suit:"#111111", trim:"#b70000",
-        face:"#2B2D42", accent:"#5a0000", panda:false, yakuza:true
+        body:"#ffe0b8", suit:"#0b0b0b", trim:"#b70000",
+        face:"#1f2937", accent:"#b91c1c", panda:false, yakuza:true
       };
     } else if (skinId === "skin.player.superman"){
       this.skin = {
@@ -159,9 +159,43 @@ export class Player {
     this._roundRect(ctx, torsoX-(x), torsoY-(y), torsoW, torsoH, 10);
     ctx.fill(); ctx.stroke();
 
-    // viền/đai ngực (accent)
-    ctx.fillStyle = s.accent;
-    ctx.fillRect(torsoX-(x)+8, torsoY-(y)+Math.floor(torsoH*0.35), torsoW-16, 10);
+    // ve áo vest & cà-vạt (Yakuza)
+    if (s.yakuza){
+      // cà-vạt đỏ (nút + dây)
+      ctx.save();
+      ctx.fillStyle = s.accent; // đỏ
+      // knot
+      ctx.beginPath();
+      ctx.moveTo(torsoX-(x) + torsoW*0.5 - 4, torsoY-(y) + 6);
+      ctx.lineTo(torsoX-(x) + torsoW*0.5 + 4, torsoY-(y) + 6);
+      ctx.lineTo(torsoX-(x) + torsoW*0.5,     torsoY-(y) + 14);
+      ctx.closePath(); ctx.fill();
+      // dây tie
+      this._roundRect(ctx, torsoX-(x) + torsoW*0.5 - 3, torsoY-(y) + 14, 6, 18, 2);
+      ctx.fill();
+      ctx.restore();
+
+      // ve áo: hai tam giác sẫm gần cổ
+      ctx.save();
+      ctx.fillStyle = "#161616";
+      // trái
+      ctx.beginPath();
+      ctx.moveTo(torsoX-(x) + 6, torsoY-(y) + 4);
+      ctx.lineTo(torsoX-(x) + torsoW*0.5 - 8, torsoY-(y) + 4);
+      ctx.lineTo(torsoX-(x) + torsoW*0.5 - 12, torsoY-(y) + 22);
+      ctx.closePath(); ctx.fill();
+      // phải
+      ctx.beginPath();
+      ctx.moveTo(torsoX-(x) + torsoW - 6, torsoY-(y) + 4);
+      ctx.lineTo(torsoX-(x) + torsoW*0.5 + 8,  torsoY-(y) + 4);
+      ctx.lineTo(torsoX-(x) + torsoW*0.5 + 12, torsoY-(y) + 22);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    } else {
+      // viền/đai ngực (accent) cho skin thường
+      ctx.fillStyle = s.accent;
+      ctx.fillRect(torsoX-(x)+8, torsoY-(y)+Math.floor(torsoH*0.35), torsoW-16, 10);
+    }
 
     // Logo S tối giản cho superman
     if (s.superman){
@@ -188,9 +222,12 @@ export class Player {
     ctx.restore();
 
     // ======= ĐẦU =======
-    // Panda head (đầy đủ tai + mảng đen quanh mắt) — thay thế đầu mặc định
     if (s.panda){
+      // Panda head (đầy đủ tai + mảng đen quanh mắt)
       this._drawPandaHead(ctx, headCX-(x), headCY-(y), headR, s);
+    } else if (s.yakuza){
+      // Đầu yakuza: tóc slick-back + biểu cảm giận dữ + sẹo xéo trên má
+      this._drawYakuzaHead_Angry(ctx, headCX-(x), headCY-(y), headR, s);
     } else {
       // ĐẦU mặc định (các skin khác)
       ctx.save();
@@ -221,32 +258,11 @@ export class Player {
         }
         ctx.stroke();
       };
-
-      if (s.yakuza){
-        // kính đen
-        const gW = headR*1.2, gH = 10;
-        const gx = headCX-(x) - gW/2, gy = headCY-(y) - 5;
-        ctx.fillStyle = "#0a0a0a";
-        this._roundRect(ctx, gx, gy, gW, gH, 4); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.18)";
-        this._roundRect(ctx, gx+4, gy+2, gW-8, 3.2, 3); ctx.fill();
-        ctx.fillStyle = "#0a0a0a";
-        ctx.fillRect(gx-6, gy+2, 6, 3);
-        ctx.fillRect(gx+gW, gy+2, 6, 3);
-        // mắt chớp phía dưới lớp kính
-        ctx.save();
-        ctx.globalCompositeOperation = "destination-over";
-        drawEyes();
-        ctx.restore();
-        drawMouth();
-      } else {
-        drawEyes();
-        drawMouth();
-      }
+      drawEyes(); drawMouth();
       ctx.restore();
     }
 
-    // TAY
+    // ======= TAY =======
     ctx.save();
     ctx.strokeStyle = s.trim;
     ctx.lineWidth = 5;
@@ -295,7 +311,7 @@ export class Player {
     }
     ctx.restore();
 
-    // CHÂN
+    // ======= CHÂN =======
     ctx.save();
     ctx.strokeStyle = s.trim;
     ctx.lineWidth = 6;
@@ -368,6 +384,97 @@ export class Player {
 
     ctx.beginPath(); ctx.moveTo(cx, cy + r*0.10);
     ctx.quadraticCurveTo(cx, cy + r*0.18, cx + r*0.12, cy + r*0.20);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ===== Yakuza angry head helper =====
+  _drawYakuzaHead_Angry(ctx, cx, cy, r, s){
+    ctx.save();
+
+    // nền da (mặt)
+    ctx.fillStyle = s.body;
+    ctx.strokeStyle = s.trim;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+
+    // tóc slick-back (mảng trên + side)
+    ctx.fillStyle = "#0a0a0a";
+    ctx.beginPath();
+    // mảng tóc trên trán – kéo ngược ra sau
+    ctx.moveTo(cx - r*0.95, cy - r*0.20);
+    ctx.quadraticCurveTo(cx - r*0.20, cy - r*0.95, cx + r*0.92, cy - r*0.24);
+    ctx.lineTo(cx + r*0.92, cy - r*0.05);
+    ctx.quadraticCurveTo(cx, cy - r*0.68, cx - r*0.95, cy - r*0.00);
+    ctx.closePath(); ctx.fill();
+
+  // side hair (tóc mai) — vẽ phía SAU đầu để không đè lên mặt
+ctx.save();
+ctx.fillStyle = "#0a0a0a";
+ctx.globalCompositeOperation = "destination-over"; // đẩy ra sau
+// trái
+ctx.beginPath();
+ctx.ellipse(cx - r*0.88, cy - r*0.05, r*0.14, r*0.22, -0.15, 0, Math.PI*2);
+ctx.fill();
+// phải
+ctx.beginPath();
+ctx.ellipse(cx + r*0.88, cy - r*0.05, r*0.14, r*0.22,  0.15, 0, Math.PI*2);
+ctx.fill();
+ctx.restore();
+
+    // Lông mày chéo (giận dữ)
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath(); // trái nghiêng xuống
+    ctx.moveTo(cx - r*0.60, cy - r*0.28);
+    ctx.lineTo(cx - r*0.28, cy - r*0.18);
+    ctx.stroke();
+    ctx.beginPath(); // phải nghiêng lên
+    ctx.moveTo(cx + r*0.60, cy - r*0.28);
+    ctx.lineTo(cx + r*0.28, cy - r*0.18);
+    ctx.stroke();
+
+    // Mắt hẹp (angry squint), có chớp
+    const eyeH = (this.blink > 0 ? r*0.04 : r*0.07);
+    ctx.fillStyle = s.face;
+    // trái
+    ctx.fillRect(cx - r*0.45 - 5, cy - r*0.10 - eyeH/2, 10, eyeH);
+    // phải
+    ctx.fillRect(cx + r*0.45 - 5, cy - r*0.10 - eyeH/2, 10, eyeH);
+
+    // Mũi/miệng cứng rắn
+    ctx.strokeStyle = s.face;
+    ctx.lineWidth = 2.4;
+    // mũi nhỏ
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r*0.02);
+    ctx.lineTo(cx, cy + r*0.08);
+    ctx.stroke();
+    // miệng thẳng dứt khoát
+    ctx.beginPath();
+    ctx.moveTo(cx - r*0.36, cy + r*0.42);
+    ctx.lineTo(cx + r*0.36, cy + r*0.42);
+    ctx.stroke();
+
+    // Sẹo xéo trên má (phải): 1 đường chính + 2 vết ngắn giao cắt
+    ctx.strokeStyle = "#b91c1c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + r*0.20, cy - r*0.10);
+    ctx.lineTo(cx + r*0.55, cy + r*0.22);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + r*0.34, cy + r*0.00);
+    ctx.lineTo(cx + r*0.48, cy - r*0.08);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + r*0.40, cy + r*0.10);
+    ctx.lineTo(cx + r*0.58, cy + r*0.06);
     ctx.stroke();
 
     ctx.restore();
