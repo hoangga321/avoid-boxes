@@ -37,8 +37,10 @@ export class Player {
       };
     } else if (skinId === "skin.player.panda"){
       this.skin = {
+        // lưu ý: body không dùng cho đầu panda (đầu sẽ là trắng)
         body:"#ffe6cc", suit:"#ffffff", trim:"#1f2937",
-        face:"#111",     accent:"#d1d5db", panda:true, ear:"#111", patch:"#222"
+        face:"#111",     accent:"#d1d5db",
+        panda:true, ear:"#111", patch:"#222"
       };
     } else if (skinId === "skin.player.yakuza"){
       this.skin = {
@@ -185,63 +187,64 @@ export class Player {
     }
     ctx.restore();
 
-    // ĐẦU
-    ctx.save();
-    ctx.fillStyle = s.body;
-    ctx.strokeStyle = s.trim;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(headCX-(x), headCY-(y), headR, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-
-    // mắt + miệng
-    // nếu yakuza + kính: mắt sẽ bị kính phủ; vẫn giữ chớp để có cảm giác sống => chỉ chớp qua phần kính
-    const drawEyes = ()=>{
-      ctx.fillStyle = s.face;
-      const eyeW = 5, eyeH = (this.blink>0 ? 2 : 6);
-      ctx.fillRect(headCX-(x) - headR*0.45, headCY-(y) - 4, eyeW, eyeH);
-      ctx.fillRect(headCX-(x) + headR*0.45 - eyeW, headCY-(y) - 4, eyeW, eyeH);
-    };
-    // miệng
-    const drawMouth = ()=>{
-      ctx.strokeStyle = s.face; ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      if (this.pose === "slip"){
-        this._arcMouth(ctx, headCX-(x), headCY-(y)+headR*0.42, headR*0.40, 1.1*Math.PI, 1.9*Math.PI, true);
-      } else if (this.pose === "taunt"){
-        this._arcMouth(ctx, headCX-(x), headCY-(y)+headR*0.42, headR*0.42, 0.1*Math.PI, 0.9*Math.PI, false);
-      } else {
-        ctx.moveTo(headCX-(x)-headR*0.35, headCY-(y)+headR*0.42);
-        ctx.lineTo(headCX-(x)+headR*0.35, headCY-(y)+headR*0.42);
-      }
-      ctx.stroke();
-    };
-
-    if (s.yakuza){
-      // Kính đen (sunglasses) – phủ ngang mắt
-      const gW = headR*1.2, gH = 10;
-      const gx = headCX-(x) - gW/2, gy = headCY-(y) - 5;
-      // gọng kính
-      ctx.fillStyle = "#0a0a0a";
-      this._roundRect(ctx, gx, gy, gW, gH, 4); ctx.fill();
-      // highlight nhẹ
-      ctx.fillStyle = "rgba(255,255,255,0.18)";
-      this._roundRect(ctx, gx+4, gy+2, gW-8, 3.2, 3); ctx.fill();
-      // càng kính
-      ctx.fillStyle = "#0a0a0a";
-      ctx.fillRect(gx-6, gy+2, 6, 3);
-      ctx.fillRect(gx+gW, gy+2, 6, 3);
-      // mắt chớp phía dưới lớp kính (tạo cảm giác sống)
-      ctx.save();
-      ctx.globalCompositeOperation = "destination-over";
-      drawEyes();
-      ctx.restore();
-      drawMouth();
+    // ======= ĐẦU =======
+    // Panda head (đầy đủ tai + mảng đen quanh mắt) — thay thế đầu mặc định
+    if (s.panda){
+      this._drawPandaHead(ctx, headCX-(x), headCY-(y), headR, s);
     } else {
-      drawEyes();
-      drawMouth();
+      // ĐẦU mặc định (các skin khác)
+      ctx.save();
+      ctx.fillStyle = s.body;
+      ctx.strokeStyle = s.trim;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(headCX-(x), headCY-(y), headR, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+
+      // mắt + miệng
+      const drawEyes = ()=>{
+        ctx.fillStyle = s.face;
+        const eyeW = 5, eyeH = (this.blink>0 ? 2 : 6);
+        ctx.fillRect(headCX-(x) - headR*0.45, headCY-(y) - 4, eyeW, eyeH);
+        ctx.fillRect(headCX-(x) + headR*0.45 - eyeW, headCY-(y) - 4, eyeW, eyeH);
+      };
+      const drawMouth = ()=>{
+        ctx.strokeStyle = s.face; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        if (this.pose === "slip"){
+          this._arcMouth(ctx, headCX-(x), headCY-(y)+headR*0.42, headR*0.40, 1.1*Math.PI, 1.9*Math.PI, true);
+        } else if (this.pose === "taunt"){
+          this._arcMouth(ctx, headCX-(x), headCY-(y)+headR*0.42, headR*0.42, 0.1*Math.PI, 0.9*Math.PI, false);
+        } else {
+          ctx.moveTo(headCX-(x)-headR*0.35, headCY-(y)+headR*0.42);
+          ctx.lineTo(headCX-(x)+headR*0.35, headCY-(y)+headR*0.42);
+        }
+        ctx.stroke();
+      };
+
+      if (s.yakuza){
+        // kính đen
+        const gW = headR*1.2, gH = 10;
+        const gx = headCX-(x) - gW/2, gy = headCY-(y) - 5;
+        ctx.fillStyle = "#0a0a0a";
+        this._roundRect(ctx, gx, gy, gW, gH, 4); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        this._roundRect(ctx, gx+4, gy+2, gW-8, 3.2, 3); ctx.fill();
+        ctx.fillStyle = "#0a0a0a";
+        ctx.fillRect(gx-6, gy+2, 6, 3);
+        ctx.fillRect(gx+gW, gy+2, 6, 3);
+        // mắt chớp phía dưới lớp kính
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-over";
+        drawEyes();
+        ctx.restore();
+        drawMouth();
+      } else {
+        drawEyes();
+        drawMouth();
+      }
+      ctx.restore();
     }
-    ctx.restore();
 
     // TAY
     ctx.save();
@@ -318,6 +321,56 @@ export class Player {
     if (this.bubbleTimer > 0 && this.bubbleText){
       this._speechBubble(ctx, this.centerX(), y + h*0.18, this.bubbleText);
     }
+  }
+
+  // ===== Panda head helper =====
+  _drawPandaHead(ctx, cx, cy, r, s){
+    ctx.save();
+
+    // đầu trắng
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = s.trim || "#1f2937";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+
+    // tai đen (hơi lệch ra ngoài đầu)
+    const earCol = s.ear || "#111";
+    ctx.fillStyle = earCol;
+    ctx.beginPath(); ctx.arc(cx - r*0.65, cy - r*0.70, r*0.28, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r*0.65, cy - r*0.70, r*0.28, 0, Math.PI*2); ctx.fill();
+
+    // mảng đen quanh mắt (oval nghiêng)
+    const patchCol = s.patch || "#222";
+    ctx.fillStyle = patchCol;
+    ctx.beginPath(); ctx.ellipse(cx - r*0.45, cy - r*0.20, r*0.34, r*0.26, -0.25, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + r*0.45, cy - r*0.20, r*0.34, r*0.26,  0.25, 0, Math.PI*2); ctx.fill();
+
+    // mắt trắng + đồng tử đen; có hiệu ứng chớp (dựa trên this.blink)
+    const eyeH = (this.blink > 0 ? r*0.06 : r*0.12);
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.ellipse(cx - r*0.45, cy - r*0.22, r*0.12, eyeH, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + r*0.45, cy - r*0.22, r*0.12, eyeH, 0, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "#0b1320";
+    ctx.beginPath(); ctx.arc(cx - r*0.45, cy - r*0.22, r*0.06, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r*0.45, cy - r*0.22, r*0.06, 0, Math.PI*2); ctx.fill();
+
+    // mũi + miệng nhỏ
+    ctx.fillStyle = "#111";
+    ctx.beginPath(); ctx.arc(cx, cy + r*0.06, r*0.08, 0, Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(cx, cy + r*0.10);
+    ctx.quadraticCurveTo(cx, cy + r*0.18, cx - r*0.12, cy + r*0.20);
+    ctx.stroke();
+
+    ctx.beginPath(); ctx.moveTo(cx, cy + r*0.10);
+    ctx.quadraticCurveTo(cx, cy + r*0.18, cx + r*0.12, cy + r*0.20);
+    ctx.stroke();
+
+    ctx.restore();
   }
 
   // ===== helpers =====
