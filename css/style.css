@@ -31,10 +31,6 @@
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 html{ overflow:hidden; }                 /* ẩn scrollbar ngoài – panel con vẫn cuộn */
-body{
-  margin:0; color:var(--text); background:var(--bg);
-  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-}
 
 /* =======================
    TOP BAR (MERGED)
@@ -59,6 +55,18 @@ body{
 .btn-reset:hover{ background:#ffe9c9; }
 
 /* =======================
+   LOGO (MERGED)
+   ======================= */
+
+.logo::after{
+  content:""; position:absolute; inset:0; left:-35%;
+  background:linear-gradient(75deg,transparent 0%,rgba(255,255,255,.9) 48%,transparent 52%);
+  transform:skewX(-16deg); animation:logoShine 3.6s ease-in-out infinite;
+  mix-blend-mode:screen; pointer-events:none;
+}
+
+@keyframes logoShine{ 0%{left:-40%;opacity:0} 10%{opacity:.9} 55%{left:115%;opacity:0} 100%{left:115%;opacity:0} }
+@keyframes underlinePulse{ 0%,100%{transform:scaleX(.82);filter:brightness(1)} 50%{transform:scaleX(1);filter:brightness(1.25)} }
 
 /* =======================
    MAIN GRID (3 columns)
