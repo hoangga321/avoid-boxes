@@ -8,11 +8,24 @@ const UFO = {
   LASER_LIFE: 3.0,
   GAP_MIN: 90,
   GAP_MAX: 110,
-  WARN_TIME: 0.35,
-  COOLDOWN: 1.05,
-  SAFE_TIME: 0.9      // NEW: thời gian “hành lang an toàn”, chặn spawn chéo
+  WARN_TIME: 0.45,      // telegraph
+  COOLDOWN: 1.05,       // nhịp cơ bản
+  SAFE_TIME: 1.10,      // giữ hành lang sau H lâu hơn một chút (từ 0.9 -> 1.1)
+  // mới thêm:
+  LOCK_AFTER_H: 0.80,   // sau H, khóa chéo
+  LOCK_AFTER_DIAG: 0.85 // sau chéo, khóa H
 };
-const THUNDER = { COOLDOWN: 0.38, WARN_TIME: 0.28, VY: 640 };
+
+const THUNDER = {
+  COOLDOWN: 1.0,        // chu kỳ 1s / phase
+  WARN_TIME: 0.45,
+  VY: 640,
+  LANES: 6,
+  MAX_BOLTS_PER_CYCLE: 4,
+  MIN_SAFE_LANES: 1,    // luôn còn >=1 hành lang an toàn
+  LEAD_SEC: 0.30        // dự đoán vị trí người chơi sau 0.3s
+};
+
 const DRAGON  = { CD: 0.8 };
 
 export class BossManager {
@@ -23,6 +36,9 @@ export class BossManager {
     this.projectiles = [];  // {x,y,w,h,vx,vy,life,type}
     this.warns = [];        // {x1,y1,x2,y2,life}
     this.entity = null;
+
+    // flash màn hình ngắn khi telegraph
+    this._flashT = 0;       // giây
   }
 
   start(type){
@@ -33,11 +49,24 @@ export class BossManager {
     else if (type === "thunder") this.entity = new ThunderBoss(this.app, this);
     else this.entity = new DragonBoss(this.app, this);
 
-    // NEW: âm thanh khi boss xuất hiện
     this.app.audio?.sfxBossIntro?.(type);
   }
 
-  clear(){ this.projectiles.length = 0; this.warns.length = 0; this.entity = null; }
+  clear(){
+    this.projectiles.length = 0;
+    this.warns.length = 0;
+    this.entity = null;
+    this._flashT = 0;
+  }
+
+  // helper: push cảnh báo + flash nhẹ
+  _pushWarn(w){
+    this.warns.push(w);
+    // nhấp nháy rất nhẹ; nếu người chơi bật reduce-flash ở settings, audio layer có thể xử lý giảm bớt
+    this._flashT = Math.max(this._flashT, 0.12);
+    // phát sự kiện để overlays hiển thị "!! WARNING !!"
+    try{ window.dispatchEvent(new CustomEvent("boss:warn", { detail: { type: this.type }})); }catch{}
+  }
 
   update(dt, game){
     if (!this.entity) return;
@@ -53,10 +82,22 @@ export class BossManager {
 
     this.projectiles = this.projectiles.filter(p => p.life === undefined || p.life > 0);
     this.warns       = this.warns.filter(w => w.life === undefined || w.life > 0);
+
+    if (this._flashT > 0) this._flashT -= dt;
   }
 
   render(ctx){
     if (!this.entity) return;
+
+    // Flash màn hình khi có cảnh báo (alpha nhỏ, rất ngắn)
+    if (this._flashT > 0){
+      ctx.save();
+      const alpha = Math.max(0, Math.min(1, this._flashT / 0.12)) * 0.18;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fillRect(0,0,this.app.logicWidth,this.app.logicHeight);
+      ctx.restore();
+    }
+
     this.entity.render(ctx);
 
     // telegraph
@@ -105,8 +146,16 @@ class UFOBoss {
     this.cx=app.logicWidth*0.5; this.cy=90;
     this.t=0; this._cd=0;
 
-    // NEW: safe corridor blocker
+    // sau sweep ngang, giữ hành lang an toàn trong SAFE_TIME
     this.safeCorridor = null; // {x,w,t}
+
+    // mới: scheduler xoay vòng + khoá pattern
+    this._lockH = 0;
+    this._lockDiag = 0;
+    this.order = ["H","DR","DL"]; // H=Horizontal, DR=Diagonal Right, DL=Diagonal Left
+    this.idx = 0;
+    this.lastMode = null;
+    this.sameCount = 0;
   }
 
   update(dt, game){
@@ -119,52 +168,69 @@ class UFOBoss {
       if (this.safeCorridor.t <= 0) this.safeCorridor = null;
     }
 
+    // giảm khóa theo thời gian
+    this._lockH    = Math.max(0, this._lockH - dt);
+    this._lockDiag = Math.max(0, this._lockDiag - dt);
+
     this._cd -= dt;
     if (this._cd > 0) return;
 
-    // Nếu đang có safe corridor (vừa quét ngang), ép mode về "ngang" để không chồng chéo
-    let mode = Math.random();
-    if (this.safeCorridor && mode >= 0.5) mode = 0.0;
+    // ----- chọn pattern theo xoay vòng, tôn trọng lockout -----
+    let tries = 3;
+    let mode = null;
+    while (tries--){
+      const candidate = this.order[this.idx % this.order.length]; // H -> DR -> DL lặp lại
+      this.idx++;
+      if (candidate === "H" && this._lockH > 0) continue;
+      if ((candidate === "DR" || candidate === "DL") && this._lockDiag > 0) continue;
+      mode = candidate;
+      break;
+    }
+    if (!mode) mode = "H"; // fallback khi bị lock hết (hiếm)
+
+    // chống spam 1 kiểu > 2 lần liên tiếp
+    if (this.lastMode === mode) this.sameCount++; else this.sameCount = 1;
+    this.lastMode = mode;
+    if (this.sameCount > 2){
+      mode = (mode === "H" ? "DR" : "H");
+      this.sameCount = 1;
+    }
 
     this._cd = UFO.COOLDOWN;
-    if (mode < 0.50){
-      // ----- NGANG có GAP -----
+
+    if (mode === "H"){
+      // ----- NGANG có GAP (always leaves safe passage) -----
       const y = this.cy + 24;
-      this.mgr.warns.push({ x1: 8, y1: y, x2: this.app.logicWidth-8, y2: y, life: UFO.WARN_TIME });
+      this.mgr._pushWarn({ x1: 8, y1: y, x2: this.app.logicWidth-8, y2: y, life: UFO.WARN_TIME });
+
       setTimeout(()=> {
         const gapW = rand(UFO.GAP_MIN, UFO.GAP_MAX);
         const px   = (game?.player?.x ?? (this.app.logicWidth*0.5));
         let gapX = clamp(px + rand(-140,140) - gapW*0.5, 8, this.app.logicWidth-8-gapW);
 
-        // NEW: lưu “hành lang an toàn” → không spawn chéo trong SAFE_TIME
+        // lưu “hành lang an toàn” → không spawn chéo trong SAFE_TIME
         this.safeCorridor = { x: gapX, w: gapW, t: UFO.SAFE_TIME };
 
         this._spawnLaserRowWithGap(0, y - UFO.LASER_THICK*0.5, this.app.logicWidth, UFO.LASER_THICK, gapX, gapW);
 
-        // NEW: SFX
         this.app.audio?.sfxBossAttack?.("laser");
+        // sau H khoá chéo 1 nhịp để người chơi kịp thở
+        this._lockDiag = Math.max(this._lockDiag, UFO.LOCK_AFTER_H);
       }, UFO.WARN_TIME*1000);
 
-    } else if (mode < 0.78){
-      // ----- CHÉO PHẢI (đứt đoạn) — chỉ nếu không có safe corridor -----
-      const x0 = this.cx - 220, y0 = this.cy - 20, x1 = this.cx + 220, y1 = this.cy + 200;
-      this.mgr.warns.push({ x1:x0, y1:y0, x2:x1, y2:y1, life:UFO.WARN_TIME });
+    } else if (mode === "DR" || mode === "DL"){
+      // ----- CHÉO (đứt đoạn) — chỉ nếu không có safe corridor -----
+      const sign = (mode === "DR") ? +1 : -1;
+      const x0 = this.cx - 220*sign, y0 = this.cy - 20, x1 = this.cx + 220*sign, y1 = this.cy + 200;
+      this.mgr._pushWarn({ x1:x0, y1:y0, x2:x1, y2:y1, life:UFO.WARN_TIME });
+
       setTimeout(()=> {
         if (!this.safeCorridor) {
           this._spawnDashedDiag(x0,y0,x1,y1,UFO.LASER_THICK, 28, 14);
           this.app.audio?.sfxBossAttack?.("laser");
         }
-      }, UFO.WARN_TIME*1000);
-
-    } else {
-      // ----- CHÉO TRÁI (đứt đoạn) — chỉ nếu không có safe corridor -----
-      const x0 = this.cx + 220, y0 = this.cy - 20, x1 = this.cx - 220, y1 = this.cy + 200;
-      this.mgr.warns.push({ x1:x0, y1:y0, x2:x1, y2:y1, life:UFO.WARN_TIME });
-      setTimeout(()=> {
-        if (!this.safeCorridor) {
-          this._spawnDashedDiag(x0,y0,x1,y1,UFO.LASER_THICK, 28, 14);
-          this.app.audio?.sfxBossAttack?.("laser");
-        }
+        // sau chéo, khoá H 1 nhịp để không phản đòn quá nhanh
+        this._lockH = Math.max(this._lockH, UFO.LOCK_AFTER_DIAG);
       }, UFO.WARN_TIME*1000);
     }
   }
@@ -223,25 +289,63 @@ class UFOBoss {
 
 /** ===================== THUNDER (BOSS 2) ===================== */
 class ThunderBoss {
-  constructor(app, mgr){ this.app=app; this.mgr=mgr; this.t=0; this._cd=0.55; }
-  update(dt){
+  constructor(app, mgr){
+    this.app=app; this.mgr=mgr; this.t=0; this._cd=0.55;
+  }
+
+  update(dt, game){
     this.t += dt;
     this._cd -= dt;
-    if (this._cd <= 0){
-      this._cd = THUNDER.COOLDOWN + Math.random()*0.1;
-      const lanes = 5, w = this.app.logicWidth, laneW = w/lanes;
-      const lane = Math.floor(Math.random()*lanes);
-      const x = lane * laneW + laneW*0.5;
-      this.mgr.warns.push({ x1:x, y1:80, x2:x, y2:this.app.logicHeight-40, life:THUNDER.WARN_TIME });
+    if (this._cd > 0) return;
+
+    // reset cooldown (nhịp 1s ± chút)
+    this._cd = THUNDER.COOLDOWN + Math.random()*0.08;
+
+    const lanes = THUNDER.LANES;
+    const w = this.app.logicWidth;
+    const laneW = w / lanes;
+
+    // lane mục tiêu bám theo người chơi (lead 0.3s)
+    const px = (game?.player?.x ?? w*0.5);
+    // không có vx public → ước lượng lane hiện tại là đủ
+    let targetLane = Math.floor(px / laneW);
+    targetLane = clamp(targetLane, 0, lanes-1);
+
+    // chọn thêm 1–2 lane phụ (off-target) khác lane mục tiêu,
+    // đồng thời đảm bảo chừa >=1 lane an toàn
+    const chooseOffLanes = (n) => {
+      const pool = [];
+      for (let i=0;i<lanes;i++){ if (i!==targetLane) pool.push(i); }
+      // trộn nhẹ
+      for (let i=pool.length-1;i>0;i--){ const j=(Math.random()* (i+1))|0; [pool[i],pool[j]]=[pool[j],pool[i]]; }
+      return pool.slice(0, n);
+    };
+
+    const extra = Math.min(2, THUNDER.MAX_BOLTS_PER_CYCLE-1);
+    let off = chooseOffLanes(extra);
+
+    // nếu lỡ kín quá nhiều lane, bỏ bớt để còn >= MIN_SAFE_LANES
+    while (1 + off.length > lanes - THUNDER.MIN_SAFE_LANES) off.pop();
+
+    const shotLanes = [targetLane, ...off];
+    const fireLane = (laneIdx)=>{
+      const x = laneIdx * laneW + laneW*0.5;
+      this.mgr._pushWarn({ x1:x, y1:80, x2:x, y2:this.app.logicHeight-40, life:THUNDER.WARN_TIME });
       setTimeout(()=> {
+        // một cột “bolt” gồm vài mảnh rơi nhanh
         for (let i=0;i<4;i++){
           this.mgr.projectiles.push({ x:x-8, y:80 - i*40, w:16, h:28, vx:0, vy: THUNDER.VY, life: 1.2, type:"bolt" });
         }
-        // NEW: SFX
         this.app.audio?.sfxBossAttack?.("thunder");
       }, THUNDER.WARN_TIME*1000);
-    }
+    };
+
+    // bắn – target trước, rồi xen kẽ off-target để tránh dồn dập
+    fireLane(shotLanes[0]);
+    if (shotLanes[1]) setTimeout(()=>fireLane(shotLanes[1]), 120);
+    if (shotLanes[2]) setTimeout(()=>fireLane(shotLanes[2]), 240);
   }
+
   render(ctx){
     ctx.save();
     ctx.translate(this.app.logicWidth/2, 70);
@@ -290,7 +394,6 @@ class DragonBoss {
           this.mgr.projectiles.push({ x:xx-5, y:60- i*30, w:10, h:14, vx:0, vy: 300+Math.random()*90, life: 2.2, type: "fire" });
         }
       }
-      // NEW: SFX
       this.app.audio?.sfxBossAttack?.("fire");
     }
   }
