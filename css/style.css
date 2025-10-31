@@ -494,13 +494,9 @@ body.boss-dragon  { --boss-accent:#ff8a3d; }
 .shop-ico[class*="ico-ob-slime"]::marker{ content:none; } /* avoid list dots */
 
 /* Tạo mắt bằng phần tử phụ (tự động) */
-.shop-ico[class*="ico-ob-slime"]::before{ /* body đã set ở trên */ }
-.shop-ico[class*="ico-ob-slime"]::after{ /* phụ kiện biến thể */ }
+
 .shop-ico[class*="ico-ob-slime"]::after,
 .shop-ico[class*="ico-ob-slime"]::before{ pointer-events:none; }
-.shop-ico[class*="ico-ob-slime"]{ 
-  /* inject pseudo 'eyes' via outline-shadow trick */
-}
 .shop-item .shop-ico{ position:relative; }
 .shop-item .shop-ico > i{
   position:absolute; left:12px; top:16px; width:3px; height:3px; background:#111; border-radius:50%;
@@ -577,7 +573,8 @@ body.boss-dragon  { --boss-accent:#ff8a3d; }
 .shop-item .meta .title{
   font-weight:800;
   display: -webkit-box;
-  -webkit-line-clamp: 2;         /* Tối đa 2 dòng */
+  -webkit-line-clamp: 2;
+   line-clamp: 2;          /* Tối đa 2 dòng */
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;
@@ -684,6 +681,7 @@ body.boss-dragon  { --boss-accent:#ff8a3d; }
   font-weight:800;
   display:-webkit-box;
   -webkit-line-clamp:2;              /* tối đa 2 dòng thay vì 1 */
+   line-clamp: 2; 
   -webkit-box-orient:vertical;
   overflow:hidden;
   white-space:normal;
@@ -781,74 +779,3 @@ body.boss-dragon  { --boss-accent:#ff8a3d; }
   50%    { transform: scaleX(1);    filter:brightness(1.25); }
 }
 
-/* ==============================
-   VIỀN CANVAS – GLOW + ORBIT rõ
-   ============================== */
-/* LƯU Ý: pseudo-element đặt trên chính canvas, không cần wrapper */
-#gameCanvas{
-  position:relative; z-index: 0;
-  border-radius: 18px;
-  border: 3px solid transparent;    /* để tạo khe cho viền phát sáng */
-  background-clip: padding-box;     /* không cho nền đè viền */
-  box-shadow: 0 16px 48px rgba(0,0,0,.28);
-  outline:none;
-}
-
-/* Viền conic chạy quanh (rõ, đậm) */
-#gameCanvas::before{
-  content:"";
-  position:absolute; inset:-3px; border-radius:20px; pointer-events:none;
-  --angle: 0deg;
-  background:
-    conic-gradient(from var(--angle),
-      rgba(34,211,238,.0) 0deg,
-      rgba(34,211,238,.9) 90deg,
-      rgba(167,139,250,.95) 180deg,
-      rgba(34,211,238,.9) 270deg,
-      rgba(34,211,238,.0) 360deg);
-  animation: orbitSpin 5.2s linear infinite;
-  /* khoét rỗng giữa để chỉ còn viền phát sáng */
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  padding:3px;                       /* độ dày viền glow */
-  filter: drop-shadow(0 0 10px rgba(34,211,238,.65))
-          drop-shadow(0 0 18px rgba(167,139,250,.5));
-}
-@keyframes orbitSpin{
-  to{ --angle: 360deg; }
-}
-
-/* Lớp “surface glow” và bracket góc (rõ hơn) */
-#gameCanvas::after{
-  content:"";
-  position:absolute; inset:0; border-radius:18px; pointer-events:none;
-  background:
-    linear-gradient(#0b0d11, #0b0d11) top left     / 28px 2px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) top left     / 2px 28px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) top right    / 28px 2px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) top right    / 2px 28px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) bottom left  / 28px 2px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) bottom left  / 2px 28px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) bottom right / 28px 2px no-repeat,
-    linear-gradient(#0b0d11, #0b0d11) bottom right / 2px 28px no-repeat,
-    radial-gradient(120% 80% at 50% 20%, rgba(255,255,255,.12), transparent 60%);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-  mix-blend-mode: normal;
-}
-
-/* Focus ring khi người chơi click vào canvas */
-#gameCanvas:focus-visible{
-  box-shadow:
-    0 0 0 3px rgba(0,0,0,.6),
-    0 0 0 7px rgba(34,211,238,.6),
-    0 16px 48px rgba(0,0,0,.28);
-}
-
-/* Respect user – giảm chuyển động nếu cần */
-@media (prefers-reduced-motion: reduce){
-  .logo::after, .logo::before, .topbar::before,
-  #gameCanvas::before{ animation:none !important; }
-}
