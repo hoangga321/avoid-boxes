@@ -9,6 +9,7 @@ import { getLevel } from "./levels.js";
 import { loadProgress, addRewards } from "../data/progress.js";
 import { Powerups } from "./powerups.js";
 import { BossManager } from "./bosses.js";
+import { addRecord } from "../ui/leaderboard.js";
 
 export class Game{
   constructor(app, hud, ui, i18n){
@@ -34,8 +35,8 @@ export class Game{
 
     // Boss
     this.boss = new BossManager(app);
-    this.bossTimer = 0;          // đếm 10s khi vào boss (không hiện HUD)
-    this.bossIntro = 0;          // thời gian cảnh báo trước khi boss vào
+    this.bossTimer = 0;
+    this.bossIntro = 0;
     this._pendingBossType = null;
 
     // Powerup token
@@ -45,12 +46,15 @@ export class Game{
     this.debugOn = false;
     window.addEventListener("keydown", (e)=>{
       if(e.key === "F1"){ this.debugOn = !this.debugOn; e.preventDefault(); }
+      // NEW: nếu đang focus vào nút leaderboard thì bỏ focus khi bấm phím
+      const lbBtn = document.getElementById("btnLeaderboard");
+      if (lbBtn && document.activeElement === lbBtn) lbBtn.blur();
     });
 
     ui.showStart(true);
     this.hud.setBest(this.scoring.best);
     this.hud.setSessionCoins(0);
-    this.hud.setBossTimer?.(0);   // giờ là no-op (không hiển thị gì)
+    this.hud.setBossTimer?.(0);
 
     // mặc định style obstacle
     this.obstacleStyle = "normal";
@@ -66,19 +70,16 @@ export class Game{
       for (const ob of this.obstacles){ ob.setStyle?.(this.obstacleStyle); }
     }
 
-    // === override skin (orc / slime.*) từ Shop ===
-    // Cập nhật: Slime chung -> "slime.any" để Spawner random 3 biến thể
+    // override skin
     const obsId = equip?.obstacle || "skin.obstacle.pastel";
     const overrideMap = {
       "skin.obstacle.orc":           "orc",
-      "skin.obstacle.slime":         "slime.any",   // << SỬA Ở ĐÂY
+      "skin.obstacle.slime":         "slime.any",
       "skin.obstacle.slime.green":   "slime.green",
       "skin.obstacle.slime.devil":   "slime.devil",
       "skin.obstacle.slime.angel":   "slime.angel",
     };
     const override = overrideMap[obsId] || null;
-
-    // Khi set override → spawner luôn sinh đúng loại; bỏ override → random theo stage
     this.spawner?.setOverrideSkin?.(override);
   }
 
@@ -129,9 +130,9 @@ export class Game{
     this.sessionLevels += 1;
     this._bumpDaily("d.clear1", 1);
 
-    // BẬT LẠI TOKEN & CHƠI TIẾP
+    // bật lại token & chơi tiếp
     this._puSpawn.t = 2.0;
-    this.hud.setBossTimer?.(0);     // no-op
+    this.hud.setBossTimer?.(0);
     this.state = "RUN";
     this.app.audio?.musicDuck(false);
   }
@@ -139,6 +140,12 @@ export class Game{
   start(){
     this.state = "RUN";
     this.scoring.reset();
+
+    // NEW: Fix sticky input – xoá mọi phím đang giữ & focus canvas
+    const keys = this.app.keys || {};
+    for (const k in keys) keys[k] = false;
+    this.app.canvas?.focus?.();
+
     this.player = new Player(this.app);
     this.obstacles = [];
     this.spawner.reset();
@@ -164,7 +171,7 @@ export class Game{
 
     this.hud.setTime(0); this.hud.setScore(0); this.hud.setBest(this.scoring.best);
     this.hud.setSessionCoins(0);
-    this.hud.setBossTimer?.(0);    // no-op
+    this.hud.setBossTimer?.(0);
 
     this.app.audio?.sfxStart();
     this.app.audio?.musicStart();
@@ -190,22 +197,15 @@ export class Game{
 
   // ====== BOSS PHASE ======
   _enterBoss(){
-    // chọn boss theo cấp: 0→UFO, 1→Thunder, 2+→Dragon
     const type = (this.levelIdx === 0) ? "ufo" : (this.levelIdx === 1 ? "thunder" : "dragon");
-
-    // 1) Cảnh báo flash trên HUD trước khi boss thật vào
     this.hud.showBossWarning?.(type, 1600);
-
-    // 2) Chuẩn bị boss, tạm dừng spawn & dọn vật rơi
     this.spawner.setActive(false);
     this.obstacles = [];
     this._puTokens = [];
     this._puSpawn.t = 1e9;
-
-    // 3) Đặt hẹn vào boss sau 1.6s (tránh start ngay)
     this._pendingBossType = type;
-    this.bossIntro  = 1.6;      // khớp với thời gian warning
-    this.bossTimer  = 10.0;     // 10 giây né đòn
+    this.bossIntro  = 1.6;
+    this.bossTimer  = 10.0;
     this.state = "BOSS_INTRO";
     this.app.audio?.musicDuck(true);
   }
@@ -222,19 +222,20 @@ export class Game{
   }
 
   _exitBoss(success=true){
-    this.hud.setBossTimer?.(0);  // no-op, giữ để tương thích
+    this.hud.setBossTimer?.(0);
     this.boss.clear();
     this.spawner.setActive(true);
     this._puSpawn.t = 2.0;
     this.app.audio?.musicDuck(false);
 
     if (success){
-      this._nextLevel();         // đặt RUN bên trong
+      this._nextLevel();
     } else {
       this.gameOver();
     }
   }
 
+  // --- giữ nguyên gameOver(), update(), các helper khác ---
   gameOver(){
     this.state = "GAMEOVER";
     this.hud.hideToast();
@@ -251,6 +252,24 @@ export class Game{
 
     const isNew = this.scoring.finishAndCheckBest();
     this.ui.setFinal(this.scoring.time, this.scoring.best, isNew, this.lastReward);
+
+    try {
+      let name = localStorage.getItem("avoidboxes.player_name") || "";
+      if (!name){
+        name = (this.i18n?.lang==="ko"
+          ? (prompt("이름을 입력하세요:", "PLAYER") || "PLAYER")
+          : (prompt("Enter your name:", "PLAYER") || "PLAYER"));
+        localStorage.setItem("avoidboxes.player_name", name);
+      }
+      const lb = addRecord({
+        name,
+        score:  this.scoring.score,
+        timeSec: Number(this.scoring.time.toFixed(1)),
+        stageId: this.stage?.id || "unknown"
+      });
+      this.ui.setLeaderboard?.(lb);
+    } catch (_) {}
+
     this.ui.showGameOver(true);
     this.hud.setBest(this.scoring.best);
 
@@ -260,7 +279,6 @@ export class Game{
 
   update(dt){
     if(this.state==="RUN"){
-      // ===== Powerups tick & slow-mo =====
       const slow    = this.power.slowFactor();
       const dtLogic = dt * slow;
       this.power.update(dt, this);
@@ -270,27 +288,23 @@ export class Game{
         this.app.audio?.musicDuck(!!nowFreeze);
       }
 
-      // scoring & HUD cơ bản
       this.scoring.update(dt);
       this.hud.setTime(this.scoring.time);
       this.hud.setScore(this.scoring.score);
       this.hud.setCombo(this.scoring.comboCount, this.scoring.multiplier(), this.scoring.comboFrac());
 
-      // coin LƯỢT (+N) realtime
       const runCoins = Math.round(this.scoring.time/2) + this.sessionNear*2 + this.sessionLevels*5;
       this.hud.setSessionCoins(runCoins);
 
       this._emitMission();
       this._tickSurvive(dt);
 
-      // ===== Input =====
       const k = this.app.keys || {};
       let vx = 0;
       if(k["ArrowLeft"] || k["a"] || k["A"])  vx -= 1;
       if(k["ArrowRight"]|| k["d"] || k["D"])  vx += 1;
       this.player.update(dtLogic, vx);
 
-      // Power keys
       if (k["1"]) this.power.trigger("magnet");
       if (k["2"]) this.power.trigger("shield");
       if (k["3"] && this.power.trigger("bomb")){
@@ -299,23 +313,17 @@ export class Game{
       }
       if (k["4"]) this.power.trigger("freeze");
 
-      // ===== Parallax =====
       for (let i=0;i<this.par.length;i++){
         this.par[i] += this.stage.parallax[i].speed * dt;
       }
 
-      // ===== Obstacles =====
       this.spawner.update(dtLogic);
       this.spawner.trySpawn(this.obstacles || (this.obstacles = []));
 
-      // đồng bộ style chướng ngại theo equip
       const targetStyle = this.obstacleStyle || "normal";
-      for (const ob of this.obstacles) {
-        if (ob.style !== targetStyle) { ob.setStyle?.(targetStyle); }
-      }
+      for (const ob of this.obstacles) if (ob.style !== targetStyle) ob.setStyle?.(targetStyle);
       for (const ob of this.obstacles) ob.update(dtLogic, this.app.logicHeight);
 
-      // ===== Token Powerups =====
       this._puSpawn.t -= dt;
       if (this._puSpawn.t <= 0){
         const types = ["magnet","shield","bomb","freeze"];
@@ -333,7 +341,6 @@ export class Game{
         return t.y < (this.app.logicHeight + 20);
       });
 
-      // ===== Collision / near-miss =====
       for (const ob of this.obstacles){
         if (aabbIntersect(this.player, ob)){
           if (this.power.tryShieldConsume()){
@@ -361,20 +368,17 @@ export class Game{
       }
       this.obstacles = this.obstacles.filter(o=>!o._out);
 
-      // ===== ĐỦ 2 điều kiện mission → PRE-BOSS (warning) =====
       if (this.scoring.time >= this.goalTime && this.nearCount >= this.nearGoal){
         this._enterBoss();
         return;
       }
 
     } else if (this.state==="BOSS_INTRO"){
-      // hiệu ứng warning ngắn – không spawn token khi boss
       this.bossIntro -= dt;
       this._puTokens = [];
       this._puSpawn.t = 1e9;
 
       if (this.bossIntro <= 0){
-        // BẮT ĐẦU boss thật sự ở đây (sau warning)
         if (this._pendingBossType){
           this.boss.start(this._pendingBossType);
           this._pendingBossType = null;
@@ -386,18 +390,15 @@ export class Game{
       const slow    = this.power.slowFactor();
       const dtLogic = dt * slow;
 
-      // tắt token & ngừng spawn khi boss
       this._puTokens = [];
       this._puSpawn.t = 1e9;
 
-      // update player
       const k = this.app.keys || {};
       let vx = 0;
       if(k["ArrowLeft"] || k["a"] || k["A"])  vx -= 1;
       if(k["ArrowRight"]|| k["d"] || k["D"])  vx += 1;
       this.player.update(dtLogic, vx);
 
-      // update boss & kiểm tra va chạm
       this.boss.update(dtLogic, this);
       if (this.boss.hitPlayer(this.player)){
         if (this.power.tryShieldConsume()){
@@ -410,7 +411,6 @@ export class Game{
         }
       }
 
-      // timer thực (không bị slow) – không vẽ HUD
       this.bossTimer -= dt;
       if (this.bossTimer <= 0){
         this._exitBoss(true);
@@ -425,12 +425,16 @@ export class Game{
         if (this.countRemain>0) this.app.audio?.sfxBeep();
       }
       if (this.countRemain <= 0){
+        // NEW: clear input trước khi chuyển sang RUN từ Pause
+        const keys = this.app.keys || {};
+        for (const k in keys) keys[k] = false;
+        this.app.canvas?.focus?.();
+
         this.state="RUN"; this.ui.showCountdown(false); this.timeSys.reset(); this.app.audio?.musicDuck(false);
       }
     }
   }
 
-  // ===== Dailies/Weeklies =====
   _tickSurvive(dt){
     let changed = false;
     const addTime = (arr)=>{
@@ -497,12 +501,10 @@ export class Game{
     const {ctx} = this.app, W=this.app.logicWidth, H=this.app.logicHeight;
     renderBackground(ctx, W, H, this.stage, this.par);
 
-    // obstacles (chỉ vẽ khi không phải boss)
     if (this.state!=="BOSS" && this.state!=="BOSS_INTRO"){
       for (const ob of (this.obstacles||[])) ob.render(ctx);
     }
 
-    // tokens (M/S/B/F) — không hiển thị trong boss
     if (this.state!=="BOSS" && this.state!=="BOSS_INTRO"){
       for (const t of this._puTokens){
         ctx.save();
@@ -517,15 +519,12 @@ export class Game{
       }
     }
 
-    // player
     this.player.render(ctx);
 
-    // boss
     if (this.state==="BOSS" || this.state==="BOSS_INTRO"){
       this.boss.render(ctx);
     }
 
-    // hiệu ứng power (shield ring / freeze tint)
     this.power.render(ctx, this.player);
 
     if (this.debugOn) {
