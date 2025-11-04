@@ -584,3 +584,11 @@ h1,h2,h3,.logo,.panel-title,.rail-title,
 @keyframes mascot-bob{ 0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-.6deg)}100%{transform:translateY(0) rotate(0)}}
 @keyframes arm-idle{ 0%{transform:rotate(2deg)}50%{transform:rotate(-3deg)}100%{transform:rotate(2deg)}}
 @keyframes forearm-point{ 0%{transform:rotate(10deg)}50%{transform:rotate(22deg)}100%{transform:rotate(10deg)}}
+/* SAFE-EDIT: Leaderboard */
+#leaderboardTop{ margin-top:12px; padding:10px; background:var(--soft,#1f2937);
+  border-radius:12px; box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.35)); }
+#leaderboardTop h3{ margin:0 0 8px 0; font-size:16px; }
+#leaderboardTop .lb-list{ margin:0; padding-left:20px; }
+#leaderboardTop .lb-list li{ margin:4px 0; line-height:1.25; }
+
+
