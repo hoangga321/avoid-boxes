@@ -9,39 +9,50 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Leaderboard dropdown styles (tách khỏi style.css để dán dễ) -->
+  <style>
+    .lb-dropdown{
+      position:fixed; z-index:9999; /* luôn nổi */
+      top:76px; right:16px;
+      width:320px; max-height:60vh; overflow:auto;
+      background:var(--surface,#f7ede2);
+      border:2px solid #000; border-radius:14px;
+      box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.35));
+      padding:10px; color:var(--ink,#111)
+    }
+    .lb-dropdown.hidden{ display:none } /* MẶC ĐỊNH ẨN */
+    .lb-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px }
+    .lb-head strong{ font-size:16px }
+    .lb-list{ margin:6px 0 8px; padding-left:18px }
+    .lb-list li{ margin:4px 0; line-height:1.25 }
+    .lb-foot{ display:flex; justify-content:flex-end; gap:8px }
+    .btn-xs{ height:28px; padding:0 10px; border:2px solid #000; border-radius:999px; background:#fff; cursor:pointer; font-weight:700 }
+    .btn-xs:hover{ transform:translateY(-1px) }
+  </style>
 </head>
 <body>
   <div id="app">
     <header class="topbar">
-      <!-- NEW: bọc logo + mascot (không phá vị trí cũ) -->
+      <!-- Giữ nguyên logo/hero theo file gốc -->
       <div class="logo-hero">
         <h1 class="logo" id="gameLogo" data-i18n="app.title"></h1>
 
-        <!-- Mascot Yakuza ngồi chỉ vào logo (SVG placeholder). 
-             Nếu bạn có PNG/SVG riêng, thay <svg> bằng <img class="yakuza-img" src="assets/skins/yakuza_pose_point.png"> -->
+        <!-- (giữ nguyên mascot nếu cần) -->
         <figure class="logo-mascot" aria-hidden="true">
           <svg viewBox="0 0 220 180" width="220" height="180" class="yakuza-svg" role="img">
-            <!-- ghế -->
             <rect x="60" y="120" width="90" height="10" rx="5" fill="#3a3a3a"/>
-            <!-- chân gập -->
             <path d="M95 120 Q90 135 100 145 L110 145 Q105 130 115 120 Z" fill="#1e293b"/>
             <path d="M125 120 Q120 135 130 145 L140 145 Q135 130 145 120 Z" fill="#1e293b"/>
-            <!-- thân áo vest đen -->
             <path d="M85 70 L140 70 L150 115 L75 115 Z" fill="#111"/>
-            <!-- cà vạt đỏ -->
             <path d="M112 70 L116 70 L118 95 L110 95 Z" fill="#b91c1c"/>
-            <!-- đầu + tóc -->
             <circle cx="112" cy="52" r="18" fill="#f8d2b1"/>
             <path d="M94 46 Q112 28 130 46 L124 40 Q112 34 100 40 Z" fill="#111"/>
-            <!-- kính đen -->
             <rect x="100" y="48" width="12" height="6" rx="2" fill="#0f172a"/>
             <rect x="114" y="48" width="12" height="6" rx="2" fill="#0f172a"/>
             <rect x="112" y="50" width="4" height="2" fill="#0f172a"/>
-            <!-- gậy bóng chày -->
             <rect x="60" y="92" width="58" height="6" rx="3" fill="#8b5e34" transform="rotate(-10 60 92)"/>
-            <!-- tay trái đặt trên gậy -->
             <circle cx="68" cy="94" r="6" fill="#f8d2b1"/>
-            <!-- tay phải (có khớp xoay để “chỉ”) -->
             <g class="right-arm" transform="translate(145,88)">
               <rect x="-6" y="-2" width="26" height="6" rx="3" fill="#111"/>
               <g class="forearm" transform="translate(20,0)">
@@ -54,7 +65,6 @@
       </div>
 
       <nav class="top-actions">
-        <!-- NEW: toggle panel trái -->
         <button id="btnReset" class="btn-reset" title="Reset missions/coins/xp">Reset Mission</button>
 
         <select id="langSelect" class="select" aria-label="Language">
@@ -68,14 +78,29 @@
           <option value="gym">Gym</option>
         </select>
 
+        <!-- NEW: nút Leaderboard -->
+        <button id="btnLeaderboard" class="btn" title="Leaderboard (Top 10)" data-i18n-title="lb.btn_title">🏆</button>
+
         <button id="btnSettings" class="btn" title="Settings" data-i18n-title="header.settings_title">⚙️</button>
         <button id="btnMute" class="btn" aria-pressed="false" title="Sound" data-i18n-title="header.sound_title">🔊</button>
       </nav>
+
+      <!-- NEW: Panel dropdown Top 10 — mặc định ẩn -->
+      <div id="leaderboardPanel" class="lb-dropdown hidden" aria-hidden="true">
+        <div class="lb-head">
+          <strong id="lbTitle" data-i18n="lb.title">Top 10 (Local)</strong>
+          <button id="btnLbClose" class="btn btn-xs" title="Close" data-i18n="lb.close">✕</button>
+        </div>
+        <ol id="lbList" class="lb-list"></ol>
+        <div class="lb-foot">
+          <button id="btnLbClear" class="btn btn-xs" title="Clear all" data-i18n="lb.clear">Clear</button>
+        </div>
+      </div>
     </header>
 
     <div id="scaleRoot" class="scale-root">
       <main class="main-grid">
-        <!-- LEFT: HOW-TO -->
+        <!-- LEFT -->
         <aside class="left-rail">
           <h2 class="rail-title">
             <span class="ico book" aria-hidden="true"></span>
@@ -84,7 +109,7 @@
           <div id="howtoBody" class="howto"></div>
         </aside>
 
-        <!-- CENTER: GAME -->
+        <!-- CENTER -->
         <section class="center-rail">
           <div class="game-stage">
             <canvas id="gameCanvas" width="540" height="720" tabindex="0"></canvas>
@@ -99,13 +124,12 @@
             <div id="gameoverStats"></div>
             <button id="btnPause" class="btn circle top-right" aria-label="Pause" data-i18n-aria="buttons.pause_aria">⏸</button>
 
-            <!-- Combo bar -->
+            <!-- Combo -->
             <div id="comboWrap" class="combo hidden">
               <div class="combo-bar"><span id="comboFill"></span></div>
               <div class="combo-label">COMBO <span id="comboCount">0</span> • <span id="comboMult">1.00x</span></div>
             </div>
 
-            <!-- Toast -->
             <div id="toast" class="toast hidden" data-i18n="toast.incoming"></div>
 
             <!-- Overlays -->
@@ -133,13 +157,13 @@
               <button id="btnRestart2" class="btn big" data-i18n="gameover.restart"></button>
             </div>
 
-            <!-- Touch zones -->
+            <!-- Touch -->
             <div class="touch left"  id="touchLeft"  aria-hidden="true"></div>
             <div class="touch right" id="touchRight" aria-hidden="true"></div>
           </div>
         </section>
 
-        <!-- RIGHT: PANELS -->
+        <!-- RIGHT -->
         <aside class="right-rail">
           <section class="panel" id="panelMissions">
             <h2 class="panel-title"><span class="ico flag"></span><span data-i18n="panel.missions_title">Today's Missions</span></h2>
@@ -148,7 +172,6 @@
 
           <section class="panel" id="panelShop">
             <h2 class="panel-title"><span class="ico cart"></span><span data-i18n="panel.shop_title">Shop</span></h2>
-            <!-- nội dung shop hiện có -->
           </section>
         </aside>
       </main>
