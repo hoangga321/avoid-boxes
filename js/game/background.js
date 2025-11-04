@@ -1,10 +1,62 @@
-// Vẽ nền parallax theo CHỦ ĐỀ: city / noodle / gym (vector, không cần ảnh)
+// js/game/background.js
+// SAFE-EDIT: ưu tiên ảnh theo stage; nếu không có ảnh thì fallback vector như cũ.
+import { BG_IMAGES } from "./bgmap.js";
+
+const _imgCache = new Map();
+function _getImage(src){
+  if (!src) return null;
+  if (_imgCache.has(src)) return _imgCache.get(src);
+  const img = new Image();
+  img.src = src;
+  _imgCache.set(src, img);
+  return img;
+}
+
+// fit: "cover" | "contain" | "repeat"
+function _drawFittedImage(ctx, img, W, H, fit="cover"){
+  if (!img || !img.complete) return false;
+  if (fit === "repeat"){
+    const pat = ctx.createPattern(img, "repeat");
+    if (!pat) return false;
+    ctx.save(); ctx.fillStyle = pat; ctx.fillRect(0,0,W,H); ctx.restore();
+    return true;
+  }
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight|| img.height;
+  if (!iw || !ih) return false;
+  const rC = W/H, rI = iw/ih;
+  let dw, dh;
+  if ((fit==="cover" && rI>rC) || (fit==="contain" && rI<rC)){ dh = H; dw = H*rI; }
+  else { dw = W; dh = W/rI; }
+  const dx = (W-dw)*0.5, dy = (H-dh)*0.5;
+  ctx.drawImage(img, dx, dy, dw, dh);
+  return true;
+}
+
 export function renderBackground(ctx, W, H, stage, offsets){
-  // lớp nền phẳng theo tông stage
+  // đệm màu nền theo stage.bg
   ctx.fillStyle = stage.bg;
   ctx.fillRect(0,0,W,H);
 
-  // vẽ từng lớp theo stage.id
+  // ẢNH theo stage.id (nếu có)
+  const cfg = BG_IMAGES?.[stage.id];
+  if (cfg?.src){
+    const img = _getImage(cfg.src);
+    const ok  = _drawFittedImage(ctx, img, W, H, cfg.fit || "cover");
+    if (ok){
+      // parallax nhẹ (overlay mờ dịch theo offsets[0])
+      if (cfg.parallax && Array.isArray(offsets)){
+        ctx.save();
+        ctx.globalAlpha = 0.08;
+        ctx.translate((offsets[0]||0)*(cfg.parallax||0), 0);
+        ctx.fillRect(0,0,W,H);
+        ctx.restore();
+      }
+      return; // đã vẽ xong ảnh → không vẽ vector nữa
+    }
+  }
+
+  // Fallback vector/parallax như bản cũ
   switch(stage.id){
     case "city":   drawCity(ctx, W, H, stage, offsets); break;
     case "noodle": drawNoodle(ctx, W, H, stage, offsets); break;
@@ -13,7 +65,7 @@ export function renderBackground(ctx, W, H, stage, offsets){
   }
 }
 
-/* ---------- CITY: nhà cao tầng + billboard + mái nhà ---------- */
+/* ======== VECTOR FALLBACK (giữ tinh thần file gốc) ======== */
 function drawCity(ctx, W, H, stage, offsets){
   stage.parallax.forEach((layer, i)=>{
     const baseY = H - layer.height;
@@ -22,13 +74,10 @@ function drawCity(ctx, W, H, stage, offsets){
     ctx.save();
     ctx.translate(-off, 0);
     for(let x= -step; x < W+step; x += step){
-      // nhà xa/gần khác nhau chút
       const hNoise = (i===0? 10: 22) + ((x/step)%3)*4;
       const wBox = step - (i===0? 18 : 12);
       ctx.fillStyle = layer.color;
       ctx.fillRect(x, baseY - hNoise, wBox, layer.height + hNoise);
-
-      // cửa sổ đơn giản cho lớp gần
       if (i===1){
         ctx.fillStyle = "rgba(255,255,255,0.35)";
         for(let yy=baseY - 6; yy < baseY + layer.height - 10; yy += 12){
@@ -39,26 +88,18 @@ function drawCity(ctx, W, H, stage, offsets){
     }
     ctx.restore();
   });
-
-  // đường chân trời mờ
   ctx.fillStyle = "rgba(0,0,0,0.06)";
   ctx.fillRect(0, H-6, W, 6);
 }
 
-/* ---------- NOODLE: phông cửa tiệm + mái che, đèn lồng, hơi nước ---------- */
 function drawNoodle(ctx, W, H, stage, offsets){
-  // tường tiệm
   ctx.fillStyle = stage.wall || "#f7d7a8";
   ctx.fillRect(0, H - 120, W, 120);
-
-  // mái che sọc
   const stripeH = 24;
   for(let y=H-160; y<H-120; y+=stripeH){
     ctx.fillStyle = (Math.floor((y-(H-160))/stripeH)%2===0) ? (stage.awningA || "#ff7b7b") : (stage.awningB || "#fff1d6");
     ctx.fillRect(0,y,W,stripeH);
   }
-
-  // đèn lồng parallax xa/gần
   stage.parallax.forEach((layer, i)=>{
     const off = offsets[i] % 80;
     ctx.save(); ctx.translate(-off, 0);
@@ -68,12 +109,9 @@ function drawNoodle(ctx, W, H, stage, offsets){
     }
     ctx.restore();
   });
-
-  // hơi nước phía sau
   steamColumn(ctx, W*0.25, H-140, 40);
   steamColumn(ctx, W*0.70, H-140, 46);
 }
-
 function lantern(ctx, cx, cy, r){
   ctx.save();
   ctx.fillStyle = "#ffb347"; ctx.strokeStyle="#2B2D42"; ctx.lineWidth=2;
@@ -82,73 +120,54 @@ function lantern(ctx, cx, cy, r){
   ctx.beginPath(); ctx.moveTo(cx, cy+r+6); ctx.lineTo(cx, cy+r+14); ctx.stroke();
   ctx.restore();
 }
-function steamColumn(ctx, x, y, height){
+function steamColumn(ctx, x, y, h){
   ctx.save(); ctx.strokeStyle="rgba(200,170,140,0.55)"; ctx.lineWidth=3;
   for(let i=0;i<3;i++){
     const ox = x + i*10;
     ctx.beginPath();
-    ctx.moveTo(ox, y+height);
-    ctx.bezierCurveTo(ox-6, y+height-18, ox+10, y+height-28, ox, y);
+    ctx.moveTo(ox, y+h);
+    ctx.bezierCurveTo(ox-6, y+h-18, ox+10, y+h-28, ox, y);
     ctx.stroke();
   }
   ctx.restore();
 }
 
-/* ---------- GYM: tường gạch + kệ tạ + poster ---------- */
 function drawGym(ctx, W, H, stage, offsets){
-  // tường gạch
   const wallH = H - 110;
   ctx.fillStyle = stage.wall || "#e1d5c1";
   ctx.fillRect(0, 0, W, wallH);
-  // pattern gạch
   ctx.fillStyle = "rgba(0,0,0,0.06)";
   const bw=28,bh=12;
   for(let y=8; y<wallH; y+=bh){
-    const shift = (Math.floor(y/bh)%2)* (bw/2);
-    for(let x=-shift; x<W; x+=bw){
-      ctx.fillRect(x+2,y+2,bw-6, bh-6);
-    }
+    const shift = (Math.floor(y/bh)%2)*(bw/2);
+    for(let x=-shift; x<W; x+=bw){ ctx.fillRect(x+2,y+2,bw-6, bh-6); }
   }
-  // sàn
   ctx.fillStyle = stage.floor || "#c6ae8b";
   ctx.fillRect(0, wallH, W, H-wallH);
 
-  // parallax giá tạ
   stage.parallax.forEach((layer,i)=>{
     const off = offsets[i] % 90;
     ctx.save(); ctx.translate(-off,0);
-    for(let x=-90; x < W+90; x+=90){
-      rack(ctx, x+45, wallH-4 - (i===0? 6:0));
-    }
+    for(let x=-90; x < W+90; x+=90){ rack(ctx, x+45, wallH-4 - (i===0? 6:0)); }
     ctx.restore();
   });
-
-  // poster
   poster(ctx, 28, 28, 90, 60, "#6c5ce7");
   poster(ctx, W-130, 40, 110, 72, "#00b894");
 }
-
 function rack(ctx, cx, baseY){
-  ctx.save();
-  ctx.strokeStyle="#2B2D42"; ctx.lineWidth=3;
-  // khung
+  ctx.save(); ctx.strokeStyle="#2B2D42"; ctx.lineWidth=3;
   ctx.beginPath();
   ctx.moveTo(cx-24, baseY); ctx.lineTo(cx-24, baseY-48);
   ctx.moveTo(cx+24, baseY); ctx.lineTo(cx+24, baseY-48);
   ctx.stroke();
-  // thanh tạ
   ctx.lineWidth=5;
   ctx.beginPath(); ctx.moveTo(cx-30, baseY-36); ctx.lineTo(cx+30, baseY-36); ctx.stroke();
-  // bánh tạ
-  plate(ctx, cx-34, baseY-36, 10);
-  plate(ctx, cx+34, baseY-36, 12);
+  plate(ctx, cx-34, baseY-36, 10); plate(ctx, cx+34, baseY-36, 12);
   ctx.restore();
 }
 function plate(ctx, x, y, r){
-  ctx.save();
-  ctx.fillStyle="#4a4a4a"; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="#9aa"; ctx.beginPath(); ctx.arc(x,y,r*0.45,0,Math.PI*2); ctx.fill();
-  ctx.restore();
+  ctx.save(); ctx.fillStyle="#4a4a4a"; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#9aa"; ctx.beginPath(); ctx.arc(x,y,r*0.45,0,Math.PI*2); ctx.fill(); ctx.restore();
 }
 function poster(ctx, x, y, w, h, color){
   ctx.save();
