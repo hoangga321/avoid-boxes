@@ -1,21 +1,32 @@
+// js/data/i18n.js
 export const I18N_STRINGS = {
   en: {
-    "panel.shop_title": "Shop",
-    "panel.shop_empty": "Coming soon…",
+    // ===== Leaderboard (lb.*) =====
+    "settings.title": "Settings",
+    "settings.sfx": "SFX",
+    "settings.music": "Music",
+    "settings.close": "Close",
+    "lb.btn_title": "Leaderboard (Top 10)",
+    "lb.title": "Top 10 (Local)",
+    "lb.close": "Close",
+    "lb.clear": "Clear",
+    "lb.no_records": "No records yet.",
+    "lb.score": "Score",
+    "lb.time": "Time",
+    "lb.stage": "Stage",
+    "lb.confirm_clear": "Clear all local records?",
+    "lb.cleared": "Cleared!",
+    "lb.name_prompt": "Congrats! Enter your name (max 16 chars):",
 
-    // Shop tabs
-    "shop.tab.player": "Player Skins",
-    "shop.tab.obstacle": "Obstacle Skins",
-    "shop.coins": "Coins:",
-    // App & header
+    // ===== App & Header =====
     "app.title": "Avoid Boxes",
     "header.settings_title": "Settings",
     "header.sound_title": "Sound",
 
-    // Buttons (attrs)
+    // ===== Buttons (attrs) =====
     "buttons.pause_aria": "Pause",
 
-    // Start/Pause/GameOver
+    // ===== Start / Pause / GameOver =====
     "start.title": "Ready?",
     "start.prompt": "Press Space / Enter or click Play",
     "start.play": "Play",
@@ -25,29 +36,23 @@ export const I18N_STRINGS = {
     "gameover.title": "Game Over",
     "gameover.restart": "Restart",
 
-    // Toast
+    // ===== Toast =====
     "toast.incoming": "Incoming!",
 
-    // HUD
+    // ===== HUD =====
     "hud.time": "Time",
     "hud.score": "Score",
     "hud.best": "Best",
     "unit.sec": "s",
 
-    // Panels (đồng bộ 2 key)
+    // ===== Panels =====
     "panel.missions_title": "Today's Missions",
     "panel.missions_empty": "No missions yet.",
     "missions.title": "Today's Missions",
     "panel.shop_title": "Shop",
     "panel.shop_empty": "Coming soon…",
 
-    // Settings
-    "settings.title": "Audio Settings",
-    "settings.sfx": "SFX Volume",
-    "settings.music": "Music Volume",
-    "settings.close": "Close",
-
-    // ===== How-to (NEW) =====
+    // ===== How-to =====
     "howto.title": "How to Play • Guide",
 
     "howto.skills.title": "Skills (press 1–4 or tap)",
@@ -74,22 +79,32 @@ export const I18N_STRINGS = {
   },
 
   ko: {
-    "panel.shop_title": "상점",
-    "panel.shop_empty": "곧 업데이트됩니다…",
+    // ===== Leaderboard (lb.*) =====
+    "settings.title": "설정",
+    "settings.sfx": "효과음",
+    "settings.music": "배경음",
+    "settings.close": "닫기",
+    "lb.btn_title": "리더보드 (Top 10)",
+    "lb.title": "리더보드 (로컬 Top 10)",
+    "lb.close": "닫기",
+    "lb.clear": "초기화",
+    "lb.no_records": "기록이 없습니다.",
+    "lb.score": "점수",
+    "lb.time": "시간",
+    "lb.stage": "스테이지",
+    "lb.confirm_clear": "로컬 기록을 모두 삭제할까요?",
+    "lb.cleared": "삭제 완료!",
+    "lb.name_prompt": "축하합니다! 이름을 입력하세요 (최대 16자):",
 
-    // Shop tabs
-    "shop.tab.player": "플레이어 스킨",
-    "shop.tab.obstacle": "장애물 스킨",
-    "shop.coins": "코인:",
-    // App & header
+    // ===== App & Header =====
     "app.title": "박스를 피해!",
     "header.settings_title": "설정",
     "header.sound_title": "사운드",
 
-    // Buttons (attrs)
+    // ===== Buttons (attrs) =====
     "buttons.pause_aria": "일시정지",
 
-    // Start/Pause/GameOver
+    // ===== Start / Pause / GameOver =====
     "start.title": "준비됐나요?",
     "start.prompt": "스페이스/엔터를 누르거나 ‘시작’을 클릭하세요",
     "start.play": "시작",
@@ -99,29 +114,23 @@ export const I18N_STRINGS = {
     "gameover.title": "게임 오버",
     "gameover.restart": "재시작",
 
-    // Toast
+    // ===== Toast =====
     "toast.incoming": "주의! 몰려온다!",
 
-    // HUD
+    // ===== HUD =====
     "hud.time": "시간",
     "hud.score": "점수",
     "hud.best": "최고",
     "unit.sec": "초",
 
-    // Panels
+    // ===== Panels =====
     "panel.missions_title": "오늘의 미션",
     "panel.missions_empty": "아직 미션이 없습니다.",
     "missions.title": "오늘의 미션",
     "panel.shop_title": "상점",
     "panel.shop_empty": "곧 업데이트됩니다…",
 
-    // Settings
-    "settings.title": "오디오 설정",
-    "settings.sfx": "효과음 볼륨",
-    "settings.music": "음악 볼륨",
-    "settings.close": "닫기",
-
-    // ===== How-to (NEW) =====
+    // ===== How-to =====
     "howto.title": "사용 방법 • 가이드",
 
     "howto.skills.title": "스킬 (1–4 또는 터치)",
